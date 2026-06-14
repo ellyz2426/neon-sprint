@@ -22,6 +22,7 @@ import {
 
 import { GameSystem } from './game-system.js';
 import { UISystem } from './ui-system.js';
+import type { CorridorRefs } from './game-system.js';
 
 async function main() {
   const container = document.getElementById('app') as HTMLDivElement;
@@ -57,13 +58,15 @@ async function main() {
   dirLight.position.set(0, 10, -5);
   world.scene.add(dirLight);
 
+  const pointLightRefs: Array<{ color: Color }> = [];
   for (let i = 0; i < 6; i++) {
     const pl = new PointLight(0x00ffff, 1.5, 30);
     pl.position.set(i % 2 === 0 ? -4 : 4, 3, -i * 15);
     world.scene.add(pl);
+    pointLightRefs.push(pl);
   }
 
-  buildCorridor(world);
+  const corridorRefs = buildCorridor(world, pointLightRefs);
 
   world.registerSystem(GameSystem);
   world.registerSystem(UISystem);
@@ -96,11 +99,11 @@ async function main() {
     });
   }
 
-  gameSystem.setRefs({ world, uiSystem });
+  gameSystem.setRefs({ world, uiSystem, corridorRefs });
   uiSystem.setRefs({ gameSystem });
 }
 
-function buildCorridor(world: World) {
+function buildCorridor(world: World, pointLights: Array<{ color: Color }>): CorridorRefs {
   const cw = 8, wh = 4, cl = 120;
 
   const floorGeo = new PlaneGeometry(cw, cl);
@@ -153,6 +156,8 @@ function buildCorridor(world: World) {
     b.position.set(0, wh, z);
     world.scene.add(b);
   }
+
+  return { floorMat, wallMat, gridMat, laneMat, trimMat, beamMat, pointLights };
 }
 
 main().catch(console.error);

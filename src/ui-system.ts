@@ -8,7 +8,7 @@ import {
   Entity,
 } from '@iwsdk/core';
 
-import { GameSystem, GameState, GameMode, GAME_MODES } from './game-system.js';
+import { GameSystem, GameState, GameMode, GAME_MODES, PowerUpType } from './game-system.js';
 
 // ── Helper ────────────────────────────────────────────────────
 
@@ -317,6 +317,32 @@ export class UISystem extends createSystem({
     } else {
       setVisible(doc, 'progress', false);
     }
+
+    // Power-up status
+    if (gs.activePowerUp !== null) {
+      const puLabels: Record<string, string> = {
+        [PowerUpType.SHIELD]: 'SHIELD',
+        [PowerUpType.MAGNET]: 'MAGNET',
+        [PowerUpType.SLOW_MO]: 'SLOW-MO',
+      };
+      const label = puLabels[gs.activePowerUp] || '';
+      if (gs.activePowerUp === PowerUpType.SHIELD) {
+        setText(doc, 'power-up-status', `${label} ACTIVE`);
+      } else {
+        setText(doc, 'power-up-status', `${label} ${gs.powerUpTimer.toFixed(1)}s`);
+      }
+      setVisible(doc, 'power-up-status', true);
+    } else {
+      setVisible(doc, 'power-up-status', false);
+    }
+
+    // Wave indicator (challenge mode)
+    if (gs.mode === GameMode.CHALLENGE && gs.challengeWaveNum > 0) {
+      setText(doc, 'wave-indicator', `Wave ${gs.challengeWaveNum}`);
+      setVisible(doc, 'wave-indicator', true);
+    } else {
+      setVisible(doc, 'wave-indicator', false);
+    }
   }
 
   private updateCountdownPanel() {
@@ -340,8 +366,17 @@ export class UISystem extends createSystem({
     setText(doc, 'final-time', `${Math.floor(gs.elapsedTime)}s`);
     setText(doc, 'final-speed', `${gs.maxSpeed.toFixed(1)} m/s`);
     setText(doc, 'final-combo', `${gs.longestCombo}`);
+    setText(doc, 'final-powerups', `${gs.powerUpsCollected}`);
     setText(doc, 'high-score', `Best: ${(gs.highScores[gs.mode] || 0).toLocaleString()}`);
     setText(doc, 'mode-name', GAME_MODES[gs.mode].name);
+
+    // Show wave reached for challenge mode
+    if (gs.mode === GameMode.CHALLENGE) {
+      setText(doc, 'final-wave', `${gs.challengeWaveNum}`);
+      setVisible(doc, 'wave-row', true);
+    } else {
+      setVisible(doc, 'wave-row', false);
+    }
 
     if (gs.isNewRecord) {
       setVisible(doc, 'new-record-badge', true);

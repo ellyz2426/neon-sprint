@@ -42,6 +42,16 @@ const OBSTACLE_BASE_INTERVAL = 1.4;
 const OBSTACLE_MIN_INTERVAL = 0.35;
 const COLLECTIBLE_INTERVAL = 0.6;
 
+// ── Round 2 Constants ─────────────────────────────────────────
+const PARTICLE_POOL_SIZE = 80;
+const POWERUP_POOL_PER_TYPE = 4;
+const POWERUP_SPAWN_INTERVAL = 18;
+const POWERUP_MAGNET_DURATION = 8;
+const POWERUP_SLOWMO_DURATION = 5;
+const POWERUP_SLOWMO_FACTOR = 0.6;
+const SHAKE_DECAY = 8;
+const WAVE_REST_DURATION = 3;
+
 // ── Types ─────────────────────────────────────────────────────
 
 export enum GameState {
@@ -63,6 +73,12 @@ export enum GameMode {
   ZEN = 'zen',
   ENDLESS = 'endless',
   CHALLENGE = 'challenge',
+}
+
+export enum PowerUpType {
+  SHIELD = 'shield',
+  MAGNET = 'magnet',
+  SLOW_MO = 'slow_mo',
 }
 
 export interface GameModeConfig {
@@ -154,6 +170,48 @@ interface CollectibleObj {
   active: boolean;
   pulsePhase: number;
   value: number;
+}
+
+interface Particle {
+  mesh: Mesh;
+  active: boolean;
+  vx: number;
+  vy: number;
+  vz: number;
+  life: number;
+  maxLife: number;
+}
+
+interface PowerUpObj {
+  group: Group;
+  type: PowerUpType;
+  lane: number;
+  active: boolean;
+}
+
+export interface CorridorRefs {
+  floorMat: MeshStandardMaterial;
+  wallMat: MeshStandardMaterial;
+  gridMat: { color: Color };
+  laneMat: { color: Color };
+  trimMat: { color: Color };
+  beamMat: MeshStandardMaterial;
+  pointLights: Array<{ color: Color }>;
+}
+
+interface EnvColorZone {
+  dist: number;
+  primary: Color;
+  wallEmissive: Color;
+  floorEmissive: Color;
+  bg: Color;
+}
+
+interface WavePattern {
+  name: string;
+  duration: number;
+  spawnInterval: number;
+  patterns: number[][];
 }
 
 // ── Materials ─────────────────────────────────────────────────
@@ -282,6 +340,30 @@ const OBSTACLE_FACTORIES: ObstacleFactory[] = [
   createDiamondObstacle,
 ];
 
+// ── Environment Color Zones ───────────────────────────────────
+
+const ENV_COLOR_ZONES: EnvColorZone[] = [
+  { dist: 0,    primary: new Color(0x00ffff), wallEmissive: new Color(0x0044aa), floorEmissive: new Color(0x001133), bg: new Color(0x000811) },
+  { dist: 500,  primary: new Color(0x00ff88), wallEmissive: new Color(0x004422), floorEmissive: new Color(0x001a0d), bg: new Color(0x000a04) },
+  { dist: 1500, primary: new Color(0xff00ff), wallEmissive: new Color(0x440044), floorEmissive: new Color(0x1a001a), bg: new Color(0x0a0011) },
+  { dist: 3000, primary: new Color(0xff4400), wallEmissive: new Color(0x440000), floorEmissive: new Color(0x1a0500), bg: new Color(0x110200) },
+];
+
+// ── Challenge Wave Patterns ───────────────────────────────────
+
+const CHALLENGE_WAVES: WavePattern[] = [
+  { name: 'Wave 1', duration: 15, spawnInterval: 1.2,
+    patterns: [[0], [1], [2], [0], [2], [1]] },
+  { name: 'Wave 2', duration: 18, spawnInterval: 1.0,
+    patterns: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 2]] },
+  { name: 'Wave 3', duration: 15, spawnInterval: 0.8,
+    patterns: [[0], [2], [0], [2], [1], [0], [2], [1]] },
+  { name: 'Wave 4', duration: 18, spawnInterval: 0.7,
+    patterns: [[0, 1], [0, 1], [0, 1], [1, 2], [1, 2], [1, 2], [0, 2], [0, 2]] },
+  { name: 'Boss Wave', duration: 12, spawnInterval: 0.5,
+    patterns: [[0, 1], [1, 2], [0, 2], [0, 1], [1, 2], [0, 2]] },
+];
+
 // ── GameSystem ────────────────────────────────────────────────
 
 // Runtime InputManager has keyboard; types expose only XRInputManager
@@ -354,9 +436,42 @@ export class GameSystem extends createSystem({}) {
   countdownValue = 3;
   private countdownTimer = 0;
 
-  setRefs(refs: { world: World; uiSystem: UISystem }) {
+  // ── Round 2 State ─────────────────────────────────────────
+
+  // Particles
+  private particles: Particle[] = [];
+
+  // Power-ups
+  private powerUps: PowerUpObj[] = [];
+  private powerUpSpawnTimer = 0;
+  activePowerUp: PowerUpType | null = null;
+  powerUpTimer = 0;
+  powerUpMaxTime = 0;
+  private hasShield = false;
+  powerUpsCollected = 0;
+
+  // Challenge waves (extended)
+  private challengeWaveTimer = 0;
+  private challengeRestTimer = 0;
+  private inWaveRest = false;
+  private waveSpawnTimer = 0;
+  private wavePatternIdx = 0;
+  challengeWaveNum = 0; // 1-based for display
+
+  // Environment color
+  private corridorRefs: CorridorRefs | null = null;
+  private _tmpPrimary = new Color();
+  private _tmpWall = new Color();
+  private _tmpFloor = new Color();
+  private _tmpBg = new Color();
+
+  // Screen shake
+  private shakeIntensity = 0;
+
+  setRefs(refs: { world: World; uiSystem: UISystem; corridorRefs?: CorridorRefs }) {
     this.worldRef = refs.world;
     this.uiSystem = refs.uiSystem;
+    if (refs.corridorRefs) this.corridorRefs = refs.corridorRefs;
   }
 
   init() {
@@ -366,6 +481,8 @@ export class GameSystem extends createSystem({}) {
     this.createSpeedLines();
     this.createObstaclePool();
     this.createCollectiblePool();
+    this.createParticlePool();
+    this.createPowerUpPool();
     this.hidePlayerVisual();
   }
 
@@ -677,6 +794,307 @@ export class GameSystem extends createSystem({}) {
     c.mesh.position.z = SPAWN_Z - 100;
   }
 
+  // ── Particle System ──────────────────────────────────────
+
+  private createParticlePool() {
+    for (let i = 0; i < PARTICLE_POOL_SIZE; i++) {
+      const geo = new SphereGeometry(0.05, 4, 4);
+      const mat = new MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 1,
+        blending: AdditiveBlending,
+      });
+      const mesh = new Mesh(geo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this.particles.push({ mesh, active: false, vx: 0, vy: 0, vz: 0, life: 0, maxLife: 1 });
+    }
+  }
+
+  emitParticles(x: number, y: number, z: number, color: Color, count: number, spread: number, lifetime: number) {
+    let emitted = 0;
+    for (const p of this.particles) {
+      if (p.active || emitted >= count) continue;
+      p.active = true;
+      p.mesh.visible = true;
+      p.mesh.position.set(x, y, z);
+      (p.mesh.material as MeshBasicMaterial).color.copy(color);
+      (p.mesh.material as MeshBasicMaterial).opacity = 1;
+      p.vx = (Math.random() - 0.5) * spread;
+      p.vy = Math.random() * spread * 0.7 + 1;
+      p.vz = (Math.random() - 0.5) * spread;
+      p.life = lifetime;
+      p.maxLife = lifetime;
+      emitted++;
+    }
+  }
+
+  private updateParticles(dt: number) {
+    for (const p of this.particles) {
+      if (!p.active) continue;
+      p.mesh.position.x += p.vx * dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.position.z += p.vz * dt;
+      p.vy -= 3 * dt; // gravity
+      p.life -= dt;
+      const frac = Math.max(0, p.life / p.maxLife);
+      (p.mesh.material as MeshBasicMaterial).opacity = frac;
+      p.mesh.scale.setScalar(0.5 + frac * 0.5);
+      if (p.life <= 0) {
+        p.active = false;
+        p.mesh.visible = false;
+      }
+    }
+  }
+
+  private deactivateAllParticles() {
+    for (const p of this.particles) {
+      p.active = false;
+      p.mesh.visible = false;
+    }
+  }
+
+  // ── Power-Up System ─────────────────────────────────────
+
+  private createPowerUpPool() {
+    const types: Array<{ type: PowerUpType; color: Color; geoFn: () => SphereGeometry | TorusGeometry | OctahedronGeometry | ConeGeometry }> = [
+      { type: PowerUpType.SHIELD, color: new Color(0x4488ff),
+        geoFn: () => new TorusGeometry(0.25, 0.08, 8, 16) },
+      { type: PowerUpType.MAGNET, color: new Color(0xffcc00),
+        geoFn: () => new OctahedronGeometry(0.22, 0) },
+      { type: PowerUpType.SLOW_MO, color: new Color(0xaa44ff),
+        geoFn: () => new ConeGeometry(0.2, 0.4, 6) },
+    ];
+
+    for (const def of types) {
+      for (let i = 0; i < POWERUP_POOL_PER_TYPE; i++) {
+        const group = new Group();
+        const mat = new MeshStandardMaterial({
+          color: def.color.clone().multiplyScalar(0.3),
+          emissive: def.color,
+          emissiveIntensity: 3,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const main = new Mesh(def.geoFn(), mat);
+        main.position.y = 1;
+        group.add(main);
+
+        const glowMat = new MeshBasicMaterial({
+          color: def.color,
+          transparent: true,
+          opacity: 0.25,
+          blending: AdditiveBlending,
+        });
+        const glow = new Mesh(new SphereGeometry(0.35, 8, 8), glowMat);
+        glow.position.y = 1;
+        group.add(glow);
+
+        group.visible = false;
+        this.scene.add(group);
+        this.powerUps.push({ group, type: def.type, lane: 1, active: false });
+      }
+    }
+  }
+
+  private spawnPowerUp() {
+    const types = [PowerUpType.SHIELD, PowerUpType.MAGNET, PowerUpType.SLOW_MO];
+    const type = types[Math.floor(Math.random() * types.length)];
+
+    const free = this.powerUps.find(p => !p.active && p.type === type);
+    if (!free) return;
+
+    const lane = Math.floor(Math.random() * 3);
+    free.lane = lane;
+    free.active = true;
+    free.group.visible = true;
+    free.group.position.set(LANE_POSITIONS[lane], 0, SPAWN_Z);
+  }
+
+  private updatePowerUps(dt: number, time: number) {
+    for (const p of this.powerUps) {
+      if (!p.active) continue;
+
+      p.group.position.z += this.speed * dt;
+      p.group.rotation.y += dt * 4;
+
+      // Pulse glow
+      const child = p.group.children[1];
+      if (child) {
+        const s = 1 + Math.sin(time * 6) * 0.2;
+        child.scale.setScalar(s);
+      }
+
+      if (p.group.position.z > DESPAWN_Z) {
+        p.active = false;
+        p.group.visible = false;
+        continue;
+      }
+
+      // Collection check
+      const dx = Math.abs(p.group.position.x - this.playerX);
+      const dz = Math.abs(p.group.position.z - this.playerMesh.position.z);
+      if (dx < 1.2 && dz < 1) {
+        this.collectPowerUp(p);
+      }
+    }
+  }
+
+  private collectPowerUp(p: PowerUpObj) {
+    p.active = false;
+    p.group.visible = false;
+    this.powerUpsCollected++;
+
+    // Get color for particles
+    const colorMap: Record<string, Color> = {
+      [PowerUpType.SHIELD]: new Color(0x4488ff),
+      [PowerUpType.MAGNET]: new Color(0xffcc00),
+      [PowerUpType.SLOW_MO]: new Color(0xaa44ff),
+    };
+    this.emitParticles(
+      p.group.position.x, 1, p.group.position.z,
+      colorMap[p.type] || new Color(0xffffff), 10, 3, 0.6,
+    );
+
+    this.activePowerUp = p.type;
+    if (p.type === PowerUpType.SHIELD) {
+      this.hasShield = true;
+      this.powerUpTimer = 999; // shield lasts until used
+      this.powerUpMaxTime = 999;
+    } else if (p.type === PowerUpType.MAGNET) {
+      this.powerUpTimer = POWERUP_MAGNET_DURATION;
+      this.powerUpMaxTime = POWERUP_MAGNET_DURATION;
+    } else if (p.type === PowerUpType.SLOW_MO) {
+      this.powerUpTimer = POWERUP_SLOWMO_DURATION;
+      this.powerUpMaxTime = POWERUP_SLOWMO_DURATION;
+    }
+  }
+
+  private updateActivePowerUp(dt: number) {
+    if (this.activePowerUp === null) return;
+    if (this.activePowerUp === PowerUpType.SHIELD) return; // shield stays until used
+
+    this.powerUpTimer -= dt;
+    if (this.powerUpTimer <= 0) {
+      this.activePowerUp = null;
+      this.powerUpTimer = 0;
+    }
+  }
+
+  private deactivateAllPowerUps() {
+    for (const p of this.powerUps) {
+      p.active = false;
+      p.group.visible = false;
+    }
+    this.activePowerUp = null;
+    this.powerUpTimer = 0;
+    this.hasShield = false;
+  }
+
+  // ── Challenge Wave System ───────────────────────────────
+
+  private updateChallengeWaves(dt: number) {
+    if (this.inWaveRest) {
+      this.challengeRestTimer -= dt;
+      if (this.challengeRestTimer <= 0) {
+        this.inWaveRest = false;
+        this.challengeWave = (this.challengeWave + 1) % CHALLENGE_WAVES.length;
+        this.challengeWaveNum = this.challengeWave + 1;
+        this.challengeWaveTimer = CHALLENGE_WAVES[this.challengeWave].duration;
+        this.waveSpawnTimer = 0;
+        this.wavePatternIdx = 0;
+      }
+      return;
+    }
+
+    const wave = CHALLENGE_WAVES[this.challengeWave];
+    this.challengeWaveTimer -= dt;
+    this.waveSpawnTimer += dt;
+
+    if (this.waveSpawnTimer >= wave.spawnInterval) {
+      this.waveSpawnTimer = 0;
+      this.spawnChallengeObstacles(wave.patterns[this.wavePatternIdx]);
+      this.wavePatternIdx = (this.wavePatternIdx + 1) % wave.patterns.length;
+    }
+
+    if (this.challengeWaveTimer <= 0) {
+      this.inWaveRest = true;
+      this.challengeRestTimer = WAVE_REST_DURATION;
+    }
+  }
+
+  private spawnChallengeObstacles(lanesToBlock: number[]) {
+    for (const lane of lanesToBlock) {
+      const free = this.obstacles.find(o => !o.active);
+      if (!free) return;
+      free.lane = lane;
+      free.active = true;
+      free.group.visible = true;
+      free.group.position.set(LANE_POSITIONS[lane], 0, SPAWN_Z);
+      free.group.rotation.y = Math.random() * Math.PI * 2;
+    }
+  }
+
+  // ── Environment Color Progression ───────────────────────
+
+  private updateEnvironmentColors() {
+    if (!this.corridorRefs) return;
+    const d = this.distance;
+
+    // Find current zone pair
+    let idx = 0;
+    while (idx < ENV_COLOR_ZONES.length - 1 && d >= ENV_COLOR_ZONES[idx + 1].dist) idx++;
+
+    if (idx >= ENV_COLOR_ZONES.length - 1) {
+      const z = ENV_COLOR_ZONES[ENV_COLOR_ZONES.length - 1];
+      this._tmpPrimary.copy(z.primary);
+      this._tmpWall.copy(z.wallEmissive);
+      this._tmpFloor.copy(z.floorEmissive);
+      this._tmpBg.copy(z.bg);
+    } else {
+      const a = ENV_COLOR_ZONES[idx];
+      const b = ENV_COLOR_ZONES[idx + 1];
+      const t = Math.min(1, (d - a.dist) / (b.dist - a.dist));
+      this._tmpPrimary.lerpColors(a.primary, b.primary, t);
+      this._tmpWall.lerpColors(a.wallEmissive, b.wallEmissive, t);
+      this._tmpFloor.lerpColors(a.floorEmissive, b.floorEmissive, t);
+      this._tmpBg.lerpColors(a.bg, b.bg, t);
+    }
+
+    const cr = this.corridorRefs;
+    cr.gridMat.color.copy(this._tmpPrimary);
+    cr.laneMat.color.copy(this._tmpPrimary);
+    cr.trimMat.color.copy(this._tmpPrimary);
+    cr.beamMat.emissive.copy(this._tmpPrimary);
+    cr.beamMat.emissiveIntensity = 0.4;
+    cr.wallMat.emissive.copy(this._tmpWall);
+    cr.floorMat.emissive.copy(this._tmpFloor);
+    for (const light of cr.pointLights) light.color.copy(this._tmpPrimary);
+
+    // Update scene bg and fog
+    const bg = this.scene.background;
+    if (bg && 'isColor' in bg) (bg as Color).copy(this._tmpBg);
+    const fog = this.scene.fog;
+    if (fog && 'color' in fog) (fog as unknown as { color: Color }).color.copy(this._tmpBg);
+  }
+
+  // ── Screen Shake ────────────────────────────────────────
+
+  private updateScreenShake(dt: number) {
+    if (this.shakeIntensity > 0) {
+      this.shakeIntensity *= Math.exp(-SHAKE_DECAY * dt);
+      if (this.shakeIntensity < 0.001) {
+        this.shakeIntensity = 0;
+        this.camera.position.x = 0;
+        this.camera.position.y = 1.6;
+      } else {
+        this.camera.position.x = (Math.random() - 0.5) * this.shakeIntensity;
+        this.camera.position.y = 1.6 + (Math.random() - 0.5) * this.shakeIntensity * 0.5;
+      }
+    }
+  }
+
   // ── Public API for UI System ──────────────────────────────
 
   startGame(mode: GameMode = GameMode.CLASSIC) {
@@ -709,6 +1127,25 @@ export class GameSystem extends createSystem({}) {
     this.currentCombo = 0;
     this.challengeWave = 0;
     this.challengeTimer = 0;
+
+    // Reset Round 2 state
+    this.deactivateAllParticles();
+    this.deactivateAllPowerUps();
+    this.powerUpSpawnTimer = 0;
+    this.powerUpsCollected = 0;
+    this.challengeWaveTimer = 0;
+    this.challengeRestTimer = 0;
+    this.inWaveRest = false;
+    this.waveSpawnTimer = 0;
+    this.wavePatternIdx = 0;
+    this.challengeWaveNum = 0;
+    this.shakeIntensity = 0;
+
+    // Init challenge wave if in challenge mode
+    if (mode === GameMode.CHALLENGE) {
+      this.challengeWaveNum = 1;
+      this.challengeWaveTimer = CHALLENGE_WAVES[0].duration;
+    }
 
     // Clear all active objects
     for (const o of this.obstacles) this.deactivateObstacle(o);
@@ -745,6 +1182,10 @@ export class GameSystem extends createSystem({}) {
     for (const o of this.obstacles) this.deactivateObstacle(o);
     for (const c of this.collectibles) this.deactivateCollectible(c);
     for (const line of this.speedLines) line.visible = false;
+    this.deactivateAllParticles();
+    this.deactivateAllPowerUps();
+    this.shakeIntensity = 0;
+    this.camera.position.set(0, 1.6, 0);
   }
 
   showModeSelect() { this.state = GameState.MODE_SELECT; }
@@ -798,6 +1239,10 @@ export class GameSystem extends createSystem({}) {
       MAX_SPEED,
       (BASE_SPEED * this.modeConfig.speedMultiplier) + this.elapsedTime * SPEED_INCREASE_RATE,
     );
+    // Slow-Mo power-up
+    if (this.activePowerUp === PowerUpType.SLOW_MO) {
+      this.speed *= POWERUP_SLOWMO_FACTOR;
+    }
     this.maxSpeed = Math.max(this.maxSpeed, this.speed);
 
     // Distance
@@ -843,20 +1288,48 @@ export class GameSystem extends createSystem({}) {
     this.updateObstacles(dt);
     this.updateCollectibles(dt, time);
 
-    // Spawn timers
-    const speedFraction = this.speed / MAX_SPEED;
-    const obstacleInterval = OBSTACLE_BASE_INTERVAL - speedFraction * (OBSTACLE_BASE_INTERVAL - OBSTACLE_MIN_INTERVAL);
-
-    this.obstacleSpawnTimer += dt;
-    if (this.obstacleSpawnTimer >= obstacleInterval) {
-      this.obstacleSpawnTimer = 0;
-      this.spawnObstacle();
+    // Obstacle spawning: challenge mode uses wave system, others use random
+    if (this.mode === GameMode.CHALLENGE) {
+      this.updateChallengeWaves(dt);
+    } else {
+      const speedFraction = this.speed / MAX_SPEED;
+      const obstacleInterval = OBSTACLE_BASE_INTERVAL - speedFraction * (OBSTACLE_BASE_INTERVAL - OBSTACLE_MIN_INTERVAL);
+      this.obstacleSpawnTimer += dt;
+      if (this.obstacleSpawnTimer >= obstacleInterval) {
+        this.obstacleSpawnTimer = 0;
+        this.spawnObstacle();
+      }
     }
 
     this.collectibleSpawnTimer += dt;
     if (this.collectibleSpawnTimer >= COLLECTIBLE_INTERVAL) {
       this.collectibleSpawnTimer = 0;
       this.spawnCollectible();
+    }
+
+    // Round 2 updates
+    this.updateParticles(dt);
+    this.updatePowerUps(dt, time);
+    this.updateActivePowerUp(dt);
+    this.updateEnvironmentColors();
+    this.updateScreenShake(dt);
+
+    // Power-up spawning
+    this.powerUpSpawnTimer += dt;
+    if (this.powerUpSpawnTimer >= POWERUP_SPAWN_INTERVAL) {
+      this.powerUpSpawnTimer = 0;
+      this.spawnPowerUp();
+    }
+
+    // Speed trail particles at high speed
+    if (this.speed > 25 && Math.random() < 0.3) {
+      const trailColor = new Color(0x0088ff);
+      this.emitParticles(
+        this.playerX + (Math.random() - 0.5) * 0.3,
+        0.5 + Math.random() * 0.2,
+        this.playerMesh.position.z + 0.3,
+        trailColor, 1, 0.5, 0.3,
+      );
     }
 
     // Speed lines
@@ -986,16 +1459,21 @@ export class GameSystem extends createSystem({}) {
         continue;
       }
 
-      // Collection check
+      // Collection check (expanded range with Magnet power-up)
       const dx = Math.abs(c.mesh.position.x - this.playerX);
       const dz = Math.abs(c.mesh.position.z - this.playerMesh.position.z);
-      if (dx < 1 && dz < 1) {
+      const collectRange = (this.activePowerUp === PowerUpType.MAGNET) ? 2.5 : 1;
+      if (dx < collectRange && dz < 1) {
         this.collectOrb(c);
       }
     }
   }
 
   private collectOrb(c: CollectibleObj) {
+    // Emit collection particles
+    const orbColor = COLLECTIBLE_COLORS[Math.floor(Math.random() * COLLECTIBLE_COLORS.length)];
+    this.emitParticles(c.mesh.position.x, c.mesh.position.y, c.mesh.position.z, orbColor, 8, 3, 0.5);
+
     this.score += c.value * this.multiplier;
     this.orbsCollected++;
     this.totalOrbsThisRun++;
@@ -1012,6 +1490,24 @@ export class GameSystem extends createSystem({}) {
   }
 
   private onHit() {
+    // Shield power-up absorbs the hit
+    if (this.hasShield) {
+      this.hasShield = false;
+      this.activePowerUp = null;
+      this.powerUpTimer = 0;
+      this.emitParticles(this.playerX, 0.8, this.playerMesh.position.z,
+        new Color(0x4488ff), 15, 5, 0.8);
+      this.shakeIntensity = 0.08;
+      return;
+    }
+
+    // Hit particles
+    const hitColor = OBSTACLE_COLORS[Math.floor(Math.random() * OBSTACLE_COLORS.length)];
+    this.emitParticles(this.playerX, 0.6, this.playerMesh.position.z, hitColor, 12, 4, 0.6);
+
+    // Screen shake
+    this.shakeIntensity = 0.15;
+
     this.lives--;
     this.multiplier = 1;
     this.currentCombo = 0;
@@ -1036,5 +1532,8 @@ export class GameSystem extends createSystem({}) {
 
     this.hidePlayerVisual();
     for (const line of this.speedLines) line.visible = false;
+    this.deactivateAllPowerUps();
+    this.shakeIntensity = 0;
+    this.camera.position.set(0, 1.6, 0);
   }
 }

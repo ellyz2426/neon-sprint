@@ -1,4 +1,4 @@
-<panel width="500" height="420" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#ff444444" padding="24">
+<panel width="500" height="480" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#ff444444" padding="24">
   <container flexDirection="column" alignItems="center" gap="12" width="100%">
     <text name="game-over-title" fontSize="40" fontWeight="bold" color="#ff4444">GAME OVER</text>
     <text name="mode-name" fontSize="14" color="#8888cc">Classic</text>
@@ -31,6 +31,14 @@
       <container flexDirection="row" justifyContent="space-between" width="100%">
         <text fontSize="14" color="#8888cc">Best Combo</text>
         <text name="final-combo" fontSize="16" color="#ff00ff">0</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Power-ups</text>
+        <text name="final-powerups" fontSize="16" color="#aa44ff">0</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%" name="wave-row" display="none">
+        <text fontSize="14" color="#8888cc">Wave Reached</text>
+        <text name="final-wave" fontSize="16" color="#ff8800">0</text>
       </container>
     </container>
 
