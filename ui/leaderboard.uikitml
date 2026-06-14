@@ -1,0 +1,46 @@
+<panel width="600" height="520" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#ffff0044" padding="24">
+  <container flexDirection="column" alignItems="center" gap="8" width="100%">
+    <text name="title" fontSize="32" fontWeight="bold" color="#ffff00" marginBottom="4">HIGH SCORES</text>
+
+    <container flexDirection="column" gap="6" width="100%">
+      <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#00ffff11" borderRadius="6" padding="8">
+        <text name="mode-classic-label" fontSize="16" fontWeight="bold" color="#00ffff">Classic</text>
+        <text name="score-classic" fontSize="16" fontWeight="bold" color="#ffffff">---</text>
+      </container>
+
+      <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#00ff8811" borderRadius="6" padding="8">
+        <text name="mode-sprint-label" fontSize="16" fontWeight="bold" color="#00ff88">Sprint</text>
+        <text name="score-sprint" fontSize="16" fontWeight="bold" color="#ffffff">---</text>
+      </container>
+
+      <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#ff880011" borderRadius="6" padding="8">
+        <text name="mode-time-label" fontSize="16" fontWeight="bold" color="#ff8800">Time Attack</text>
+        <text name="score-time_attack" fontSize="16" fontWeight="bold" color="#ffffff">---</text>
+      </container>
+
+      <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#aa44ff11" borderRadius="6" padding="8">
+        <text name="mode-zen-label" fontSize="16" fontWeight="bold" color="#aa44ff">Zen</text>
+        <text name="score-zen" fontSize="16" fontWeight="bold" color="#ffffff">---</text>
+      </container>
+
+      <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#ff444411" borderRadius="6" padding="8">
+        <text name="mode-endless-label" fontSize="16" fontWeight="bold" color="#ff4444">Endless</text>
+        <text name="score-endless" fontSize="16" fontWeight="bold" color="#ffffff">---</text>
+      </container>
+
+      <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#4488ff11" borderRadius="6" padding="8">
+        <text name="mode-challenge-label" fontSize="16" fontWeight="bold" color="#4488ff">Challenge</text>
+        <text name="score-challenge" fontSize="16" fontWeight="bold" color="#ffffff">---</text>
+      </container>
+    </container>
+
+    <container flexDirection="row" justifyContent="space-between" width="100%" backgroundColor="#ffff0022" borderRadius="8" padding="10" marginTop="4">
+      <text name="total-label" fontSize="18" fontWeight="bold" color="#ffff00">Total Games</text>
+      <text name="total-games" fontSize="18" fontWeight="bold" color="#ffffff">0</text>
+    </container>
+
+    <text name="btn-back" fontSize="18" color="#00ffff" backgroundColor="#00ffff22"
+          borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#00ffff44"
+          hover-backgroundColor="#00ffff44" cursor="pointer" width="80%" marginTop="6">Back to Menu</text>
+  </container>
+</panel>

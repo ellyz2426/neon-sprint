@@ -346,6 +346,59 @@ export class AudioManager {
     noise.stop(now + 0.07);
   }
 
+  /** Near-miss tension sound — quick rising sweep */
+  playNearMiss() {
+    const ctx = this.ensureCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.Q.value = 3;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain!);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
+
+  /** Distance milestone celebration — triumphant ascending sweep with chords */
+  playMilestone() {
+    const ctx = this.ensureCtx();
+    const now = ctx.currentTime;
+
+    // 3-note ascending fanfare (major triad)
+    const freqs = [523, 659, 784]; // C5, E5, G5
+    for (let i = 0; i < freqs.length; i++) {
+      const osc = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc2.type = 'triangle';
+      osc.frequency.setValueAtTime(freqs[i], now + i * 0.1);
+      osc2.frequency.setValueAtTime(freqs[i] * 1.5, now + i * 0.1);
+      gain.gain.setValueAtTime(0.1, now + i * 0.1);
+      gain.gain.linearRampToValueAtTime(0.1, now + 0.15 + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i * 0.1);
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(now + i * 0.1);
+      osc.stop(now + 0.4 + i * 0.1);
+      osc2.start(now + i * 0.1);
+      osc2.stop(now + 0.4 + i * 0.1);
+    }
+  }
+
   // ── Ambient Music Engine ─────────────────────────────────
 
   private musicOscs: OscillatorNode[] = [];

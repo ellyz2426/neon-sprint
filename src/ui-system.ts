@@ -73,6 +73,10 @@ export class UISystem extends createSystem({
     required: [PanelUI, PanelDocument],
     where: [eq(PanelUI, 'config', './ui/stats.json')],
   },
+  leaderboard: {
+    required: [PanelUI, PanelDocument],
+    where: [eq(PanelUI, 'config', './ui/leaderboard.json')],
+  },
 }) {
   private gameSystem!: GameSystem;
   private audio!: AudioManager;
@@ -101,6 +105,7 @@ export class UISystem extends createSystem({
   private countdownEntity: Entity | null = null;
   private newRecordEntity: Entity | null = null;
   private statsEntity: Entity | null = null;
+  private leaderboardEntity: Entity | null = null;
 
   setRefs(refs: { gameSystem: GameSystem; audioManager?: AudioManager; statsTracker?: StatsTracker }) {
     this.gameSystem = refs.gameSystem;
@@ -144,6 +149,12 @@ export class UISystem extends createSystem({
       tutorialBtn?.addEventListener('click', () => {
         this.audio?.playClick();
         this.gameSystem.showTutorial();
+      });
+
+      const leaderboardBtn = doc.getElementById('btn-leaderboard') as UIKit.Text | undefined;
+      leaderboardBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showLeaderboard();
       });
 
       const statsBtn = doc.getElementById('btn-stats') as UIKit.Text | undefined;
@@ -374,6 +385,20 @@ export class UISystem extends createSystem({
         this.gameSystem.showMenu();
       });
     });
+
+    // Leaderboard
+    this.queries.leaderboard.subscribe('qualify', (entity) => {
+      this.leaderboardEntity = entity;
+      this.syncVisibility(entity, false);
+      const doc = getDoc(entity);
+      if (!doc) return;
+
+      const backBtn = doc.getElementById('btn-back') as UIKit.Text | undefined;
+      backBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showMenu();
+      });
+    });
   }
 
   showAchievementToast(name: string) {
@@ -396,6 +421,7 @@ export class UISystem extends createSystem({
       if (state === GameState.STATS) this.updateStatsPanel();
       if (state === GameState.MENU) this.updateMainMenuPanel();
       if (state === GameState.SETTINGS) this.updateSettingsPanel();
+      if (state === GameState.LEADERBOARD) this.updateLeaderboardPanel();
     }
 
     // Continuous updates
@@ -441,6 +467,7 @@ export class UISystem extends createSystem({
     show(this.countdownEntity, state === GameState.COUNTDOWN);
     show(this.newRecordEntity, state === GameState.GAME_OVER && this.gameSystem.isNewRecord);
     show(this.statsEntity, state === GameState.STATS);
+    show(this.leaderboardEntity, state === GameState.LEADERBOARD);
   }
 
   private updateHUD() {
@@ -506,6 +533,35 @@ export class UISystem extends createSystem({
       setVisible(doc, 'wave-indicator', true);
     } else {
       setVisible(doc, 'wave-indicator', false);
+    }
+
+    // Near-miss indicator (Round 5)
+    setVisible(doc, 'near-miss', gs.nearMissTimer > 0);
+    if (gs.nearMissTimer > 0) {
+      setText(doc, 'near-miss', gs.nearMissCount > 1 ? `NEAR MISS! x${gs.nearMissCount}` : 'NEAR MISS!');
+    }
+
+    // Combo meter (Round 5) — shows when combo >= 5
+    const combo = gs.longestCombo;
+    if (gs.multiplier >= 3) {
+      setText(doc, 'combo-meter', `COMBO x${gs.multiplier}`);
+      setVisible(doc, 'combo-meter', true);
+    } else {
+      setVisible(doc, 'combo-meter', false);
+    }
+
+    // Milestone indicator (Round 5)
+    setVisible(doc, 'milestone', gs.milestoneTimer > 0);
+    if (gs.milestoneTimer > 0) {
+      setText(doc, 'milestone', gs.milestoneText);
+    }
+
+    // Zone indicator (Round 5)
+    if (gs.zoneChangeTimer > 0) {
+      setText(doc, 'zone-indicator', `${gs.currentZoneName} ZONE`);
+      setVisible(doc, 'zone-indicator', true);
+    } else {
+      setVisible(doc, 'zone-indicator', false);
     }
   }
 
@@ -625,5 +681,24 @@ export class UISystem extends createSystem({
     }
     setText(doc, 'btn-toggle-shake', this.gameSystem.screenShakeEnabled ? 'ON' : 'OFF');
     setText(doc, 'btn-toggle-lines', this.gameSystem.speedLinesEnabled ? 'ON' : 'OFF');
+  }
+
+  private updateLeaderboardPanel() {
+    if (!this.leaderboardEntity) return;
+    const doc = getDoc(this.leaderboardEntity);
+    if (!doc) return;
+
+    const hs = this.gameSystem.highScores;
+    const modes = ['classic', 'sprint', 'time_attack', 'zen', 'endless', 'challenge'];
+    for (const mode of modes) {
+      const score = hs[mode];
+      setText(doc, `score-${mode}`, score ? score.toLocaleString() : '---');
+    }
+
+    // Total games from stats
+    if (this.statsTracker) {
+      const s = this.statsTracker.get();
+      setText(doc, 'total-games', `${s.totalGames}`);
+    }
   }
 }

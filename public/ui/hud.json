@@ -192,6 +192,21 @@
               "display": "none"
             },
             "dataUid": "uid-16"
+          },
+          {
+            "sourceTag": "text",
+            "type": "custom",
+            "children": [
+              "NEAR MISS!"
+            ],
+            "properties": {
+              "name": "near-miss",
+              "fontsize": "12",
+              "fontweight": "bold",
+              "color": "#ff44ff",
+              "display": "none"
+            },
+            "dataUid": "uid-17"
           }
         ],
         "properties": {
@@ -203,6 +218,65 @@
           "margintop": "2"
         },
         "dataUid": "uid-14"
+      },
+      {
+        "sourceTag": "container",
+        "type": "custom",
+        "children": [
+          {
+            "sourceTag": "text",
+            "type": "custom",
+            "children": [
+              "COMBO x0"
+            ],
+            "properties": {
+              "name": "combo-meter",
+              "fontsize": "14",
+              "fontweight": "bold",
+              "color": "#ffff00",
+              "display": "none"
+            },
+            "dataUid": "uid-19"
+          },
+          {
+            "sourceTag": "text",
+            "type": "custom",
+            "children": [
+              "1000m!"
+            ],
+            "properties": {
+              "name": "milestone",
+              "fontsize": "14",
+              "fontweight": "bold",
+              "color": "#00ff88",
+              "display": "none"
+            },
+            "dataUid": "uid-20"
+          },
+          {
+            "sourceTag": "text",
+            "type": "custom",
+            "children": [
+              "SPEED ZONE"
+            ],
+            "properties": {
+              "name": "zone-indicator",
+              "fontsize": "11",
+              "color": "#8888cc",
+              "display": "none"
+            },
+            "dataUid": "uid-21"
+          }
+        ],
+        "properties": {
+          "flexdirection": "row",
+          "justifycontent": "space-between",
+          "alignitems": "center",
+          "width": "100%",
+          "gap": "8",
+          "margintop": "2"
+        },
+        "dataUid": "uid-18"
       },
       {
         "sourceTag": "text",
@@ -217,14 +291,14 @@
           "padding": "4",
           "textalign": "center",
           "display": "none",
-          "margintop": "4"
+          "margintop": "2"
         },
-        "dataUid": "uid-17"
+        "dataUid": "uid-22"
       }
     ],
     "properties": {
       "width": "500",
-      "height": "130",
+      "height": "160",
       "backgroundcolor": "#0a0a1acc",
       "borderradius": "12",
       "borderwidth": "1",
@@ -241,7 +315,7 @@
         "column": 0
       },
       "end": {
-        "line": 28,
+        "line": 35,
         "column": 8
       }
     },
@@ -371,7 +445,7 @@
         "column": 2
       },
       "end": {
-        "line": 24,
+        "line": 25,
         "column": 14
       }
     },
@@ -397,11 +471,61 @@
     },
     "uid-17": {
       "start": {
-        "line": 26,
+        "line": 24,
+        "column": 4
+      },
+      "end": {
+        "line": 24,
+        "column": 107
+      }
+    },
+    "uid-18": {
+      "start": {
+        "line": 27,
         "column": 2
       },
       "end": {
-        "line": 27,
+        "line": 31,
+        "column": 14
+      }
+    },
+    "uid-19": {
+      "start": {
+        "line": 28,
+        "column": 4
+      },
+      "end": {
+        "line": 28,
+        "column": 107
+      }
+    },
+    "uid-20": {
+      "start": {
+        "line": 29,
+        "column": 4
+      },
+      "end": {
+        "line": 29,
+        "column": 103
+      }
+    },
+    "uid-21": {
+      "start": {
+        "line": 30,
+        "column": 4
+      },
+      "end": {
+        "line": 30,
+        "column": 94
+      }
+    },
+    "uid-22": {
+      "start": {
+        "line": 33,
+        "column": 2
+      },
+      "end": {
+        "line": 34,
         "column": 92
       }
     }

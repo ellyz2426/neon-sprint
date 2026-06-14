@@ -90,6 +90,7 @@ async function main() {
     { config: './ui/countdown.json', offset: [0, 0.2, -2], spd: 10 },
     { config: './ui/new-record.json', offset: [0, 0.4, -2], spd: 8 },
     { config: './ui/stats.json', offset: [0, 0, -2.5], spd: 6 },
+    { config: './ui/leaderboard.json', offset: [0, 0, -2.5], spd: 6 },
   ];
 
   for (const pc of panelConfigs) {

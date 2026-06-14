@@ -145,6 +145,40 @@
                     "sourceTag": "text",
                     "type": "custom",
                     "children": [
+                      "Leaderboard"
+                    ],
+                    "properties": {
+                      "name": "btn-leaderboard",
+                      "fontsize": "16",
+                      "color": "#ff8800",
+                      "backgroundcolor": "#ff880022",
+                      "borderradius": "8",
+                      "padding": "10",
+                      "textalign": "center",
+                      "borderwidth": "1",
+                      "bordercolor": "#ff880044",
+                      "hoverBackgroundcolor": "#ff880044",
+                      "cursor": "pointer",
+                      "flexgrow": "1"
+                    },
+                    "dataUid": "uid-12"
+                  }
+                ],
+                "properties": {
+                  "flexdirection": "row",
+                  "gap": "10",
+                  "width": "100%"
+                },
+                "dataUid": "uid-10"
+              },
+              {
+                "sourceTag": "container",
+                "type": "custom",
+                "children": [
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
                       "Stats"
                     ],
                     "properties": {
@@ -161,34 +195,34 @@
                       "cursor": "pointer",
                       "flexgrow": "1"
                     },
-                    "dataUid": "uid-12"
+                    "dataUid": "uid-14"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Settings"
+                    ],
+                    "properties": {
+                      "name": "btn-settings",
+                      "fontsize": "16",
+                      "color": "#8888cc",
+                      "backgroundcolor": "#8888cc22",
+                      "borderradius": "8",
+                      "padding": "10",
+                      "textalign": "center",
+                      "borderwidth": "1",
+                      "bordercolor": "#8888cc44",
+                      "hoverBackgroundcolor": "#8888cc44",
+                      "cursor": "pointer",
+                      "flexgrow": "1"
+                    },
+                    "dataUid": "uid-15"
                   }
                 ],
                 "properties": {
                   "flexdirection": "row",
                   "gap": "10",
-                  "width": "100%"
-                },
-                "dataUid": "uid-10"
-              },
-              {
-                "sourceTag": "text",
-                "type": "custom",
-                "children": [
-                  "Settings"
-                ],
-                "properties": {
-                  "name": "btn-settings",
-                  "fontsize": "16",
-                  "color": "#8888cc",
-                  "backgroundcolor": "#8888cc22",
-                  "borderradius": "8",
-                  "padding": "10",
-                  "textalign": "center",
-                  "borderwidth": "1",
-                  "bordercolor": "#8888cc44",
-                  "hoverBackgroundcolor": "#8888cc44",
-                  "cursor": "pointer",
                   "width": "100%"
                 },
                 "dataUid": "uid-13"
@@ -214,7 +248,7 @@
     ],
     "properties": {
       "width": "600",
-      "height": "500",
+      "height": "530",
       "backgroundcolor": "#0a0a1aee",
       "borderradius": "16",
       "borderwidth": "2",
@@ -231,7 +265,7 @@
         "column": 0
       },
       "end": {
-        "line": 35,
+        "line": 41,
         "column": 8
       }
     },
@@ -241,7 +275,7 @@
         "column": 2
       },
       "end": {
-        "line": 34,
+        "line": 40,
         "column": 14
       }
     },
@@ -281,7 +315,7 @@
         "column": 4
       },
       "end": {
-        "line": 33,
+        "line": 39,
         "column": 16
       }
     },
@@ -342,7 +376,7 @@
       },
       "end": {
         "line": 27,
-        "column": 90
+        "column": 96
       }
     },
     "uid-13": {
@@ -351,8 +385,28 @@
         "column": 6
       },
       "end": {
-        "line": 32,
-        "column": 91
+        "line": 38,
+        "column": 18
+      }
+    },
+    "uid-14": {
+      "start": {
+        "line": 31,
+        "column": 8
+      },
+      "end": {
+        "line": 33,
+        "column": 90
+      }
+    },
+    "uid-15": {
+      "start": {
+        "line": 35,
+        "column": 8
+      },
+      "end": {
+        "line": 37,
+        "column": 93
       }
     }
   }

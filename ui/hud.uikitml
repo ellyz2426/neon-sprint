@@ -1,4 +1,4 @@
-<panel width="500" height="130" backgroundColor="#0a0a1acc" borderRadius="12" borderWidth="1" borderColor="#00ffff33" padding="8">
+<panel width="500" height="160" backgroundColor="#0a0a1acc" borderRadius="12" borderWidth="1" borderColor="#00ffff33" padding="8">
   <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%" gap="12">
     <container flexDirection="column" alignItems="flex-start" gap="2">
       <text name="score" fontSize="20" fontWeight="bold" color="#00ffff">Score: 0</text>
@@ -22,8 +22,15 @@
   <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%" gap="8" marginTop="2">
     <text name="power-up-status" fontSize="12" color="#00ff88" display="none">Shield Active</text>
     <text name="wave-indicator" fontSize="12" fontWeight="bold" color="#ff8800" display="none">Wave 1</text>
+    <text name="near-miss" fontSize="12" fontWeight="bold" color="#ff44ff" display="none">NEAR MISS!</text>
+  </container>
+
+  <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%" gap="8" marginTop="2">
+    <text name="combo-meter" fontSize="14" fontWeight="bold" color="#ffff00" display="none">COMBO x0</text>
+    <text name="milestone" fontSize="14" fontWeight="bold" color="#00ff88" display="none">1000m!</text>
+    <text name="zone-indicator" fontSize="11" color="#8888cc" display="none">SPEED ZONE</text>
   </container>
 
   <text name="achievement-toast" fontSize="12" color="#ffff00" backgroundColor="#ffff0033"
-        borderRadius="6" padding="4" textAlign="center" display="none" marginTop="4"></text>
+        borderRadius="6" padding="4" textAlign="center" display="none" marginTop="2"></text>
 </panel>

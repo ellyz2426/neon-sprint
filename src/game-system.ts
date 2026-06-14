@@ -70,6 +70,7 @@ export enum GameState {
   ACHIEVEMENTS = 'achievements',
   TUTORIAL = 'tutorial',
   STATS = 'stats',
+  LEADERBOARD = 'leaderboard',
   COUNTDOWN = 'countdown',
   PLAYING = 'playing',
   PAUSED = 'paused',
@@ -473,6 +474,37 @@ export class GameSystem extends createSystem({}) {
   private doublePointsScoreStart = 0;
   private powerUpTypesCollected = new Set<PowerUpType>();
 
+  // Round 5: Near-miss detection
+  nearMissTimer = 0; // timer for HUD display
+  nearMissCount = 0; // count this run
+  private nearMissedObstacles = new Set<ObstacleObj>(); // prevent double-counting
+
+  // Round 5: Distance milestones
+  milestoneTimer = 0;
+  milestoneText = '';
+  private lastMilestone = 0;
+  private readonly MILESTONE_DISTANCES = [100, 250, 500, 1000, 2000, 3000, 5000, 7500, 10000, 15000, 20000];
+
+  // Round 5: Lane tracking for all-lanes achievement
+  private recentLanes: Array<{ lane: number; time: number }> = [];
+
+  // Round 5: No-orbs distance tracking
+  private distanceSinceLastOrb = 0;
+  private distanceSinceLastHit = 0;
+
+  // Round 5: Star field
+  private starField: Mesh[] = [];
+  private static readonly STAR_COUNT = 60;
+
+  // Round 5: Player trail
+  private trailSegments: Mesh[] = [];
+  private static readonly TRAIL_LENGTH = 15;
+  private trailPositions: Array<{ x: number; z: number }> = [];
+
+  // Round 5: Difficulty zone
+  currentZoneName = '';
+  zoneChangeTimer = 0;
+
   // Challenge waves (extended)
   private challengeWaveTimer = 0;
   private challengeRestTimer = 0;
@@ -518,6 +550,8 @@ export class GameSystem extends createSystem({}) {
     this.createPowerUpPool();
     this.createFloorPulses();
     this.createPhaseGlow();
+    this.createStarField();
+    this.createPlayerTrail();
     this.hidePlayerVisual();
   }
 
@@ -611,6 +645,13 @@ export class GameSystem extends createSystem({}) {
       ['combo-100', 'Century Streak', 'Get a 100-orb combo', 100],
       ['distance-20000', 'Ultramarathon', 'Travel 20,000 meters', 20000],
       ['survivor-600', 'Iron Will', 'Survive for 10 minutes', 600],
+      // Round 5 achievements
+      ['near-miss-5', 'Daredevil', 'Get 5 near-misses in one run', 5],
+      ['near-miss-15', 'Adrenaline Junkie', 'Get 15 near-misses in one run', 15],
+      ['near-miss-30', 'Death Wish', 'Get 30 near-misses in one run', 30],
+      ['milestone-5k', 'Five K', 'Reach the 5km milestone', 1],
+      ['milestone-10k', 'Ten K', 'Reach the 10km milestone', 1],
+      ['perfect-run-500', 'Untouchable', 'Travel 500m without taking damage', 500],
     ];
 
     this.achievements = defs.map(([id, name, description, target]) => ({
@@ -734,6 +775,23 @@ export class GameSystem extends createSystem({}) {
 
     // Round 4: Distance 20k
     if (this.distance >= 20000) this.unlockAchievement('distance-20000');
+
+    // Round 5: No-orbs achievement
+    if (this.distanceSinceLastOrb >= 500) this.unlockAchievement('no-orbs');
+
+    // Round 5: Near-miss achievements
+    if (this.nearMissCount >= 5) this.unlockAchievement('near-miss-5');
+    if (this.nearMissCount >= 15) this.unlockAchievement('near-miss-15');
+    if (this.nearMissCount >= 30) this.unlockAchievement('near-miss-30');
+
+    // Round 5: Milestone achievements
+    if (this.distance >= 5000) this.unlockAchievement('milestone-5k');
+    if (this.distance >= 10000) this.unlockAchievement('milestone-10k');
+
+    // Round 5: Untouchable (500m without taking damage)
+    if (this.invincibilityTimer <= 0 && this.distanceSinceLastHit >= 500) {
+      this.unlockAchievement('perfect-run-500');
+    }
 
     // Round 4: Double Points score tracking
     if (this.activePowerUp === PowerUpType.DOUBLE_POINTS) {
@@ -975,6 +1033,166 @@ export class GameSystem extends createSystem({}) {
       // Restore player color
       const playerMat = this.playerMesh.material as MeshStandardMaterial;
       playerMat.emissive.setHex(0x00ffff);
+    }
+  }
+
+  // ── Star Field Background ──────────────────────────────
+
+  private createStarField() {
+    const starGeo = new SphereGeometry(0.04, 4, 4);
+    for (let i = 0; i < GameSystem.STAR_COUNT; i++) {
+      const brightness = 0.3 + Math.random() * 0.7;
+      const color = new Color().setHSL(0.55 + Math.random() * 0.15, 0.4, brightness * 0.5);
+      const mat = new MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: brightness * 0.6,
+        blending: AdditiveBlending,
+      });
+      const star = new Mesh(starGeo, mat);
+      star.position.set(
+        (Math.random() - 0.5) * 7,
+        3.5 + Math.random() * 1,
+        (Math.random() - 0.5) * 80 - 20,
+      );
+      star.scale.setScalar(0.5 + Math.random() * 1.5);
+      this.scene.add(star);
+      this.starField.push(star);
+    }
+  }
+
+  private updateStarField(dt: number, time: number) {
+    for (let i = 0; i < this.starField.length; i++) {
+      const star = this.starField[i];
+      // Scroll with game speed (slower than obstacles for parallax)
+      star.position.z += this.speed * dt * 0.3;
+
+      // Twinkle
+      const twinkle = Math.sin(time * (2 + i * 0.3) + i * 1.7) * 0.3 + 0.7;
+      (star.material as MeshBasicMaterial).opacity = twinkle * 0.4;
+
+      // Reset when past camera
+      if (star.position.z > DESPAWN_Z) {
+        star.position.z = SPAWN_Z - Math.random() * 30;
+        star.position.x = (Math.random() - 0.5) * 7;
+      }
+    }
+  }
+
+  // ── Player Trail ────────────────────────────────────────
+
+  private createPlayerTrail() {
+    for (let i = 0; i < GameSystem.TRAIL_LENGTH; i++) {
+      const geo = new BoxGeometry(0.15 - i * 0.008, 0.15 - i * 0.008, 0.25);
+      const mat = new MeshBasicMaterial({
+        color: new Color(0x00ffff),
+        transparent: true,
+        opacity: 0,
+        blending: AdditiveBlending,
+      });
+      const seg = new Mesh(geo, mat);
+      seg.visible = false;
+      this.scene.add(seg);
+      this.trailSegments.push(seg);
+    }
+  }
+
+  private updatePlayerTrail(dt: number) {
+    if (this.state !== GameState.PLAYING) {
+      for (const s of this.trailSegments) s.visible = false;
+      this.trailPositions.length = 0;
+      return;
+    }
+
+    // Record current position
+    this.trailPositions.unshift({ x: this.playerX, z: this.playerMesh.position.z });
+    if (this.trailPositions.length > GameSystem.TRAIL_LENGTH) {
+      this.trailPositions.length = GameSystem.TRAIL_LENGTH;
+    }
+
+    const speedFrac = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+    const showTrail = speedFrac > 0.15;
+
+    for (let i = 0; i < this.trailSegments.length; i++) {
+      const seg = this.trailSegments[i];
+      if (i >= this.trailPositions.length || !showTrail) {
+        seg.visible = false;
+        continue;
+      }
+      seg.visible = true;
+      const pos = this.trailPositions[i];
+      seg.position.set(pos.x, 0.3, pos.z + 0.5 + i * 0.4);
+
+      const fade = 1 - (i / GameSystem.TRAIL_LENGTH);
+      (seg.material as MeshBasicMaterial).opacity = fade * speedFrac * 0.35;
+
+      // Color follows environment
+      (seg.material as MeshBasicMaterial).color.copy(this._tmpPrimary);
+    }
+  }
+
+  // ── Near-Miss Detection ─────────────────────────────────
+
+  private checkNearMiss(o: ObstacleObj) {
+    if (this.nearMissedObstacles.has(o)) return;
+    const dx = Math.abs(o.group.position.x - this.playerX);
+    const dz = Math.abs(o.group.position.z - this.playerMesh.position.z);
+    // Near miss: obstacle in same Z range but different lane (close but not hit)
+    if (dz < 1.0 && dx > 0.8 && dx < 2.5) {
+      this.nearMissedObstacles.add(o);
+      this.nearMissCount++;
+      this.nearMissTimer = 1.5; // show for 1.5s
+      this.audio?.playNearMiss();
+
+      // Check close-call achievement (near miss when switching lanes)
+      if (this.laneSwitchCooldown > LANE_SWITCH_COOLDOWN - 0.3) {
+        this.unlockAchievement('close-call');
+      }
+    }
+  }
+
+  // ── Distance Milestones ─────────────────────────────────
+
+  private checkMilestones() {
+    for (const m of this.MILESTONE_DISTANCES) {
+      if (this.distance >= m && this.lastMilestone < m) {
+        this.lastMilestone = m;
+        const formatted = m >= 1000 ? `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)}km` : `${m}m`;
+        this.milestoneText = `${formatted} REACHED!`;
+        this.milestoneTimer = 2.5;
+        this.audio?.playMilestone();
+        // Emit celebration particles
+        this.emitParticles(this.playerX, 1.5, this.playerMesh.position.z,
+          new Color(0x00ff88), 15, 5, 0.8);
+        break;
+      }
+    }
+  }
+
+  // ── Difficulty Zones ────────────────────────────────────
+
+  private updateDifficultyZone() {
+    const zones: Array<{ min: number; name: string }> = [
+      { min: 0, name: '' },
+      { min: 15, name: 'FAST' },
+      { min: 25, name: 'HYPER' },
+      { min: 35, name: 'INSANE' },
+      { min: 42, name: 'MAX' },
+    ];
+
+    let newZone = '';
+    for (let i = zones.length - 1; i >= 0; i--) {
+      if (this.speed >= zones[i].min) {
+        newZone = zones[i].name;
+        break;
+      }
+    }
+
+    if (newZone !== this.currentZoneName && newZone !== '') {
+      this.currentZoneName = newZone;
+      this.zoneChangeTimer = 2.0;
+    } else if (newZone === '') {
+      this.currentZoneName = '';
     }
   }
 
@@ -1348,6 +1566,20 @@ export class GameSystem extends createSystem({}) {
     this.challengeWaveNum = 0;
     this.shakeIntensity = 0;
 
+    // Reset Round 5 state
+    this.nearMissTimer = 0;
+    this.nearMissCount = 0;
+    this.nearMissedObstacles.clear();
+    this.milestoneTimer = 0;
+    this.milestoneText = '';
+    this.lastMilestone = 0;
+    this.recentLanes.length = 0;
+    this.distanceSinceLastOrb = 0;
+    this.trailPositions.length = 0;
+    this.currentZoneName = '';
+    this.zoneChangeTimer = 0;
+    this.distanceSinceLastHit = 0;
+
     // Init challenge wave if in challenge mode
     if (mode === GameMode.CHALLENGE) {
       this.challengeWaveNum = 1;
@@ -1398,6 +1630,9 @@ export class GameSystem extends createSystem({}) {
     this.camera.position.set(0, 1.6, 0);
     for (const p of this.floorPulses) p.visible = false;
     if (this.phaseGlow) this.phaseGlow.visible = false;
+    for (const s of this.trailSegments) s.visible = false;
+    this.trailPositions.length = 0;
+    this.nearMissedObstacles.clear();
     this.audio?.stopMusic();
   }
 
@@ -1407,6 +1642,7 @@ export class GameSystem extends createSystem({}) {
   showTutorial() { this.state = GameState.TUTORIAL; }
   showStats() { this.state = GameState.STATS; }
   showMenu() { this.state = GameState.MENU; }
+  showLeaderboard() { this.state = GameState.LEADERBOARD; }
 
   getAchievementCount(): number {
     return this.achievements.filter(a => a.unlocked).length;
@@ -1462,6 +1698,8 @@ export class GameSystem extends createSystem({}) {
 
     // Distance
     this.distance += this.speed * dt;
+    this.distanceSinceLastOrb += this.speed * dt; // Track distance without orbs
+    this.distanceSinceLastHit += this.speed * dt; // Track distance without hits
     const pointsMultiplier = this.activePowerUp === PowerUpType.DOUBLE_POINTS ? 2 : 1;
     this.score += this.speed * dt * DISTANCE_SCORE_RATE * 0.1 * pointsMultiplier;
 
@@ -1533,6 +1771,17 @@ export class GameSystem extends createSystem({}) {
     // Round 4 updates
     this.updateFloorPulses(dt, time);
     this.updatePhaseGlow(time);
+
+    // Round 5 updates
+    this.updateStarField(dt, time);
+    this.updatePlayerTrail(dt);
+    this.checkMilestones();
+    this.updateDifficultyZone();
+
+    // Near-miss timer decay
+    if (this.nearMissTimer > 0) this.nearMissTimer -= dt;
+    if (this.milestoneTimer > 0) this.milestoneTimer -= dt;
+    if (this.zoneChangeTimer > 0) this.zoneChangeTimer -= dt;
 
     // Update ambient music intensity
     const speedFraction = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
@@ -1634,11 +1883,25 @@ export class GameSystem extends createSystem({}) {
       this.playerLane--;
       this.laneSwitchCooldown = LANE_SWITCH_COOLDOWN;
       this.audio?.playLaneSwitch();
+      this.trackLaneUsage();
     }
     if (moveRight && this.playerLane < 2) {
       this.playerLane++;
       this.laneSwitchCooldown = LANE_SWITCH_COOLDOWN;
       this.audio?.playLaneSwitch();
+      this.trackLaneUsage();
+    }
+  }
+
+  private trackLaneUsage() {
+    const now = this.elapsedTime;
+    this.recentLanes.push({ lane: this.playerLane, time: now });
+    // Keep only recent 5 seconds of history
+    this.recentLanes = this.recentLanes.filter(l => now - l.time <= 5);
+    // Check if all 3 lanes were used within 5 seconds
+    const lanesUsed = new Set(this.recentLanes.map(l => l.lane));
+    if (lanesUsed.size >= 3) {
+      this.unlockAchievement('all-lanes');
     }
   }
 
@@ -1652,7 +1915,13 @@ export class GameSystem extends createSystem({}) {
       // Despawn
       if (o.group.position.z > DESPAWN_Z) {
         this.deactivateObstacle(o);
+        this.nearMissedObstacles.delete(o);
         continue;
+      }
+
+      // Near-miss detection (Round 5)
+      if (this.invincibilityTimer <= 0) {
+        this.checkNearMiss(o);
       }
 
       // Collision check
@@ -1707,6 +1976,7 @@ export class GameSystem extends createSystem({}) {
     this.currentCombo++;
     this.longestCombo = Math.max(this.longestCombo, this.currentCombo);
     this.multiplierTimer = 0;
+    this.distanceSinceLastOrb = 0; // Reset no-orbs tracker
 
     // Audio
     this.audio?.playOrbCollect(this.multiplier);
@@ -1756,6 +2026,7 @@ export class GameSystem extends createSystem({}) {
     this.multiplier = 1;
     this.currentCombo = 0;
     this.invincibilityTimer = INVINCIBILITY_TIME;
+    this.distanceSinceLastHit = 0;
 
     if (this.lives <= 0) {
       this.endGame();
@@ -1799,6 +2070,9 @@ export class GameSystem extends createSystem({}) {
     this.camera.position.set(0, 1.6, 0);
     for (const p of this.floorPulses) p.visible = false;
     if (this.phaseGlow) this.phaseGlow.visible = false;
+    for (const s of this.trailSegments) s.visible = false;
+    this.trailPositions.length = 0;
+    this.nearMissedObstacles.clear();
     this.audio?.stopMusic();
   }
 }

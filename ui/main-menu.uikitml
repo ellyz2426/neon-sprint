@@ -1,4 +1,4 @@
-<panel width="600" height="500" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
+<panel width="600" height="530" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
   <container flexDirection="column" alignItems="center" gap="12" width="100%">
     <text name="title" fontSize="48" fontWeight="bold" color="#00ffff" marginBottom="2">NEON SPRINT</text>
     <text name="subtitle" fontSize="16" color="#4488cc">VR Endless Runner</text>
@@ -23,14 +23,20 @@
               borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#ffff0044"
               hover-backgroundColor="#ffff0044" cursor="pointer" flexGrow="1">Achievements</text>
 
+        <text name="btn-leaderboard" fontSize="16" color="#ff8800" backgroundColor="#ff880022"
+              borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#ff880044"
+              hover-backgroundColor="#ff880044" cursor="pointer" flexGrow="1">Leaderboard</text>
+      </container>
+
+      <container flexDirection="row" gap="10" width="100%">
         <text name="btn-stats" fontSize="16" color="#00ff88" backgroundColor="#00ff8822"
               borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#00ff8844"
               hover-backgroundColor="#00ff8844" cursor="pointer" flexGrow="1">Stats</text>
-      </container>
 
-      <text name="btn-settings" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
-            borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
-            hover-backgroundColor="#8888cc44" cursor="pointer" width="100%">Settings</text>
+        <text name="btn-settings" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
+              borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
+              hover-backgroundColor="#8888cc44" cursor="pointer" flexGrow="1">Settings</text>
+      </container>
     </container>
   </container>
 </panel>
