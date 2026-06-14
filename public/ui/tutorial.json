@@ -35,7 +35,7 @@
                       "Movement"
                     ],
                     "properties": {
-                      "fontsize": "16",
+                      "fontsize": "15",
                       "fontweight": "bold",
                       "color": "#00ffff"
                     },
@@ -45,25 +45,13 @@
                     "sourceTag": "text",
                     "type": "custom",
                     "children": [
-                      "VR: Use thumbstick left/right"
+                      "VR: Thumbstick | KB: A/D or Arrows"
                     ],
                     "properties": {
-                      "fontsize": "13",
+                      "fontsize": "12",
                       "color": "#aaaacc"
                     },
                     "dataUid": "uid-7"
-                  },
-                  {
-                    "sourceTag": "text",
-                    "type": "custom",
-                    "children": [
-                      "Keyboard: A/D or Arrow keys"
-                    ],
-                    "properties": {
-                      "fontsize": "13",
-                      "color": "#aaaacc"
-                    },
-                    "dataUid": "uid-8"
                   }
                 ],
                 "properties": {
@@ -71,7 +59,7 @@
                   "gap": "4",
                   "backgroundcolor": "#ffffff08",
                   "borderradius": "8",
-                  "padding": "10"
+                  "padding": "8"
                 },
                 "dataUid": "uid-5"
               },
@@ -86,35 +74,23 @@
                       "Collect Orbs"
                     ],
                     "properties": {
-                      "fontsize": "16",
+                      "fontsize": "15",
                       "fontweight": "bold",
                       "color": "#00ff88"
                     },
+                    "dataUid": "uid-9"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Grab orbs for points. Chain for multiplier!"
+                    ],
+                    "properties": {
+                      "fontsize": "12",
+                      "color": "#aaaacc"
+                    },
                     "dataUid": "uid-10"
-                  },
-                  {
-                    "sourceTag": "text",
-                    "type": "custom",
-                    "children": [
-                      "Grab glowing orbs for points"
-                    ],
-                    "properties": {
-                      "fontsize": "13",
-                      "color": "#aaaacc"
-                    },
-                    "dataUid": "uid-11"
-                  },
-                  {
-                    "sourceTag": "text",
-                    "type": "custom",
-                    "children": [
-                      "Chain orbs to build multiplier"
-                    ],
-                    "properties": {
-                      "fontsize": "13",
-                      "color": "#aaaacc"
-                    },
-                    "dataUid": "uid-12"
                   }
                 ],
                 "properties": {
@@ -122,9 +98,9 @@
                   "gap": "4",
                   "backgroundcolor": "#ffffff08",
                   "borderradius": "8",
-                  "padding": "10"
+                  "padding": "8"
                 },
-                "dataUid": "uid-9"
+                "dataUid": "uid-8"
               },
               {
                 "sourceTag": "container",
@@ -137,35 +113,23 @@
                       "Dodge Obstacles"
                     ],
                     "properties": {
-                      "fontsize": "16",
+                      "fontsize": "15",
                       "fontweight": "bold",
                       "color": "#ff4444"
                     },
-                    "dataUid": "uid-14"
+                    "dataUid": "uid-12"
                   },
                   {
                     "sourceTag": "text",
                     "type": "custom",
                     "children": [
-                      "Switch lanes to avoid barriers"
+                      "Switch lanes to avoid. Speed increases!"
                     ],
                     "properties": {
-                      "fontsize": "13",
+                      "fontsize": "12",
                       "color": "#aaaacc"
                     },
-                    "dataUid": "uid-15"
-                  },
-                  {
-                    "sourceTag": "text",
-                    "type": "custom",
-                    "children": [
-                      "Speed increases over time"
-                    ],
-                    "properties": {
-                      "fontsize": "13",
-                      "color": "#aaaacc"
-                    },
-                    "dataUid": "uid-16"
+                    "dataUid": "uid-13"
                   }
                 ],
                 "properties": {
@@ -173,16 +137,103 @@
                   "gap": "4",
                   "backgroundcolor": "#ffffff08",
                   "borderradius": "8",
-                  "padding": "10"
+                  "padding": "8"
                 },
-                "dataUid": "uid-13"
+                "dataUid": "uid-11"
+              },
+              {
+                "sourceTag": "container",
+                "type": "custom",
+                "children": [
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Power-Ups"
+                    ],
+                    "properties": {
+                      "fontsize": "15",
+                      "fontweight": "bold",
+                      "color": "#ffcc00"
+                    },
+                    "dataUid": "uid-15"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Shield - Absorbs one hit"
+                    ],
+                    "properties": {
+                      "fontsize": "12",
+                      "color": "#4488ff"
+                    },
+                    "dataUid": "uid-16"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Magnet - Auto-collect nearby orbs"
+                    ],
+                    "properties": {
+                      "fontsize": "12",
+                      "color": "#ffcc00"
+                    },
+                    "dataUid": "uid-17"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Slow-Mo - Reduces speed 40%"
+                    ],
+                    "properties": {
+                      "fontsize": "12",
+                      "color": "#aa44ff"
+                    },
+                    "dataUid": "uid-18"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "2X Points - Double all scoring"
+                    ],
+                    "properties": {
+                      "fontsize": "12",
+                      "color": "#00ff44"
+                    },
+                    "dataUid": "uid-19"
+                  },
+                  {
+                    "sourceTag": "text",
+                    "type": "custom",
+                    "children": [
+                      "Phase - Pass through obstacles"
+                    ],
+                    "properties": {
+                      "fontsize": "12",
+                      "color": "#ff44ff"
+                    },
+                    "dataUid": "uid-20"
+                  }
+                ],
+                "properties": {
+                  "flexdirection": "column",
+                  "gap": "4",
+                  "backgroundcolor": "#ffffff08",
+                  "borderradius": "8",
+                  "padding": "8"
+                },
+                "dataUid": "uid-14"
               }
             ],
             "properties": {
               "flexdirection": "column",
-              "gap": "10",
+              "gap": "8",
               "width": "90%",
-              "margintop": "8"
+              "margintop": "6"
             },
             "dataUid": "uid-4"
           },
@@ -209,7 +260,7 @@
                   "hoverBackgroundcolor": "#44ffff",
                   "cursor": "pointer"
                 },
-                "dataUid": "uid-18"
+                "dataUid": "uid-22"
               },
               {
                 "sourceTag": "text",
@@ -231,22 +282,22 @@
                   "hoverBackgroundcolor": "#8888cc44",
                   "cursor": "pointer"
                 },
-                "dataUid": "uid-19"
+                "dataUid": "uid-23"
               }
             ],
             "properties": {
               "flexdirection": "row",
               "gap": "10",
               "width": "80%",
-              "margintop": "8"
+              "margintop": "6"
             },
-            "dataUid": "uid-17"
+            "dataUid": "uid-21"
           }
         ],
         "properties": {
           "flexdirection": "column",
           "alignitems": "center",
-          "gap": "12",
+          "gap": "10",
           "width": "100%"
         },
         "dataUid": "uid-2"
@@ -254,7 +305,7 @@
     ],
     "properties": {
       "width": "500",
-      "height": "380",
+      "height": "500",
       "backgroundcolor": "#0a0a1aee",
       "borderradius": "16",
       "borderwidth": "2",
@@ -271,7 +322,7 @@
         "column": 0
       },
       "end": {
-        "line": 33,
+        "line": 39,
         "column": 8
       }
     },
@@ -281,7 +332,7 @@
         "column": 2
       },
       "end": {
-        "line": 32,
+        "line": 38,
         "column": 14
       }
     },
@@ -301,7 +352,7 @@
         "column": 4
       },
       "end": {
-        "line": 22,
+        "line": 28,
         "column": 16
       }
     },
@@ -311,7 +362,7 @@
         "column": 6
       },
       "end": {
-        "line": 9,
+        "line": 8,
         "column": 18
       }
     },
@@ -332,27 +383,27 @@
       },
       "end": {
         "line": 7,
-        "column": 80
+        "column": 85
       }
     },
     "uid-8": {
       "start": {
-        "line": 8,
-        "column": 8
+        "line": 10,
+        "column": 6
       },
       "end": {
-        "line": 8,
-        "column": 78
+        "line": 13,
+        "column": 18
       }
     },
     "uid-9": {
       "start": {
         "line": 11,
-        "column": 6
+        "column": 8
       },
       "end": {
-        "line": 15,
-        "column": 18
+        "line": 11,
+        "column": 81
       }
     },
     "uid-10": {
@@ -362,96 +413,136 @@
       },
       "end": {
         "line": 12,
-        "column": 81
+        "column": 94
       }
     },
     "uid-11": {
       "start": {
-        "line": 13,
-        "column": 8
+        "line": 15,
+        "column": 6
       },
       "end": {
-        "line": 13,
-        "column": 79
+        "line": 18,
+        "column": 18
       }
     },
     "uid-12": {
       "start": {
-        "line": 14,
+        "line": 16,
         "column": 8
       },
       "end": {
-        "line": 14,
-        "column": 81
+        "line": 16,
+        "column": 84
       }
     },
     "uid-13": {
       "start": {
         "line": 17,
-        "column": 6
+        "column": 8
       },
       "end": {
-        "line": 21,
-        "column": 18
+        "line": 17,
+        "column": 90
       }
     },
     "uid-14": {
       "start": {
-        "line": 18,
-        "column": 8
-      },
-      "end": {
-        "line": 18,
-        "column": 84
-      }
-    },
-    "uid-15": {
-      "start": {
-        "line": 19,
-        "column": 8
-      },
-      "end": {
-        "line": 19,
-        "column": 81
-      }
-    },
-    "uid-16": {
-      "start": {
         "line": 20,
-        "column": 8
-      },
-      "end": {
-        "line": 20,
-        "column": 76
-      }
-    },
-    "uid-17": {
-      "start": {
-        "line": 24,
-        "column": 4
-      },
-      "end": {
-        "line": 31,
-        "column": 16
-      }
-    },
-    "uid-18": {
-      "start": {
-        "line": 25,
         "column": 6
       },
       "end": {
         "line": 27,
-        "column": 76
+        "column": 18
+      }
+    },
+    "uid-15": {
+      "start": {
+        "line": 21,
+        "column": 8
+      },
+      "end": {
+        "line": 21,
+        "column": 78
+      }
+    },
+    "uid-16": {
+      "start": {
+        "line": 22,
+        "column": 8
+      },
+      "end": {
+        "line": 22,
+        "column": 75
+      }
+    },
+    "uid-17": {
+      "start": {
+        "line": 23,
+        "column": 8
+      },
+      "end": {
+        "line": 23,
+        "column": 84
+      }
+    },
+    "uid-18": {
+      "start": {
+        "line": 24,
+        "column": 8
+      },
+      "end": {
+        "line": 24,
+        "column": 78
       }
     },
     "uid-19": {
       "start": {
-        "line": 28,
+        "line": 25,
+        "column": 8
+      },
+      "end": {
+        "line": 25,
+        "column": 81
+      }
+    },
+    "uid-20": {
+      "start": {
+        "line": 26,
+        "column": 8
+      },
+      "end": {
+        "line": 26,
+        "column": 81
+      }
+    },
+    "uid-21": {
+      "start": {
+        "line": 30,
+        "column": 4
+      },
+      "end": {
+        "line": 37,
+        "column": 16
+      }
+    },
+    "uid-22": {
+      "start": {
+        "line": 31,
         "column": 6
       },
       "end": {
-        "line": 30,
+        "line": 33,
+        "column": 76
+      }
+    },
+    "uid-23": {
+      "start": {
+        "line": 34,
+        "column": 6
+      },
+      "end": {
+        "line": 36,
         "column": 98
       }
     }

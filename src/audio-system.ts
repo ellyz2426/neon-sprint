@@ -168,6 +168,8 @@ export class AudioManager {
       shield: 400,
       magnet: 500,
       slow_mo: 300,
+      double_points: 600,
+      phase: 350,
     };
     const base = baseFreqs[type] || 400;
 
@@ -342,6 +344,151 @@ export class AudioManager {
     gain.connect(this.masterGain!);
     noise.start(now);
     noise.stop(now + 0.07);
+  }
+
+  // ── Ambient Music Engine ─────────────────────────────────
+
+  private musicOscs: OscillatorNode[] = [];
+  private musicGains: GainNode[] = [];
+  private musicFilter: BiquadFilterNode | null = null;
+  private musicMasterGain: GainNode | null = null;
+  private musicPlaying = false;
+  private musicLfo: OscillatorNode | null = null;
+  private musicLfoGain: GainNode | null = null;
+
+  startMusic() {
+    if (this.musicPlaying) return;
+    const ctx = this.ensureCtx();
+    const now = ctx.currentTime;
+
+    // Create music master gain
+    this.musicMasterGain = ctx.createGain();
+    this.musicMasterGain.gain.setValueAtTime(0, now);
+    this.musicMasterGain.gain.linearRampToValueAtTime(0.06, now + 2);
+
+    // Filter for warmth
+    this.musicFilter = ctx.createBiquadFilter();
+    this.musicFilter.type = 'lowpass';
+    this.musicFilter.frequency.setValueAtTime(400, now);
+    this.musicFilter.Q.setValueAtTime(1, now);
+
+    this.musicMasterGain.connect(this.musicFilter);
+    this.musicFilter.connect(this.masterGain!);
+
+    // Bass drone - root note
+    const bassOsc = ctx.createOscillator();
+    const bassGain = ctx.createGain();
+    bassOsc.type = 'sawtooth';
+    bassOsc.frequency.setValueAtTime(55, now); // A1
+    bassGain.gain.setValueAtTime(0.4, now);
+    bassOsc.connect(bassGain);
+    bassGain.connect(this.musicMasterGain);
+    bassOsc.start(now);
+    this.musicOscs.push(bassOsc);
+    this.musicGains.push(bassGain);
+
+    // Sub bass - octave below
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(27.5, now); // A0
+    subGain.gain.setValueAtTime(0.3, now);
+    subOsc.connect(subGain);
+    subGain.connect(this.musicMasterGain);
+    subOsc.start(now);
+    this.musicOscs.push(subOsc);
+    this.musicGains.push(subGain);
+
+    // Pad - fifth above
+    const padOsc = ctx.createOscillator();
+    const padGain = ctx.createGain();
+    padOsc.type = 'triangle';
+    padOsc.frequency.setValueAtTime(82.5, now); // E2
+    padGain.gain.setValueAtTime(0.15, now);
+    padOsc.connect(padGain);
+    padGain.connect(this.musicMasterGain);
+    padOsc.start(now);
+    this.musicOscs.push(padOsc);
+    this.musicGains.push(padGain);
+
+    // Shimmer - high octave
+    const shimmerOsc = ctx.createOscillator();
+    const shimmerGain = ctx.createGain();
+    shimmerOsc.type = 'sine';
+    shimmerOsc.frequency.setValueAtTime(440, now); // A4
+    shimmerGain.gain.setValueAtTime(0.03, now);
+    shimmerOsc.connect(shimmerGain);
+    shimmerGain.connect(this.musicMasterGain);
+    shimmerOsc.start(now);
+    this.musicOscs.push(shimmerOsc);
+    this.musicGains.push(shimmerGain);
+
+    // LFO for pulsing effect
+    this.musicLfo = ctx.createOscillator();
+    this.musicLfoGain = ctx.createGain();
+    this.musicLfo.type = 'sine';
+    this.musicLfo.frequency.setValueAtTime(0.25, now); // slow pulse
+    this.musicLfoGain.gain.setValueAtTime(0.02, now);
+    this.musicLfo.connect(this.musicLfoGain);
+    this.musicLfoGain.connect(this.musicMasterGain.gain);
+    this.musicLfo.start(now);
+
+    this.musicPlaying = true;
+  }
+
+  /** Update music intensity based on game speed (0-1 fraction) */
+  updateMusicIntensity(speedFraction: number) {
+    if (!this.musicPlaying || !this.ctx || !this.musicFilter || !this.musicMasterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Open filter as speed increases
+    const filterFreq = 400 + speedFraction * 2600; // 400 → 3000 Hz
+    this.musicFilter.frequency.setTargetAtTime(filterFreq, now, 0.3);
+
+    // Increase volume slightly
+    const vol = 0.06 + speedFraction * 0.06; // 0.06 → 0.12
+    this.musicMasterGain.gain.setTargetAtTime(vol, now, 0.3);
+
+    // Speed up LFO pulse
+    if (this.musicLfo) {
+      const lfoRate = 0.25 + speedFraction * 1.75; // 0.25 → 2 Hz
+      this.musicLfo.frequency.setTargetAtTime(lfoRate, now, 0.5);
+    }
+
+    // Shimmer gets louder at high speed
+    if (this.musicGains.length >= 4) {
+      this.musicGains[3].gain.setTargetAtTime(0.03 + speedFraction * 0.08, now, 0.3);
+    }
+  }
+
+  stopMusic() {
+    if (!this.musicPlaying) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Fade out
+    if (this.musicMasterGain) {
+      this.musicMasterGain.gain.setTargetAtTime(0, now, 0.3);
+    }
+
+    // Stop after fade
+    setTimeout(() => {
+      for (const osc of this.musicOscs) {
+        try { osc.stop(); } catch { /* ignore */ }
+      }
+      if (this.musicLfo) {
+        try { this.musicLfo.stop(); } catch { /* ignore */ }
+      }
+      this.musicOscs = [];
+      this.musicGains = [];
+      this.musicFilter = null;
+      this.musicMasterGain = null;
+      this.musicLfo = null;
+      this.musicLfoGain = null;
+    }, 500);
+
+    this.musicPlaying = false;
   }
 }
 

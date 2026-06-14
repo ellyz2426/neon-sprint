@@ -11,6 +11,7 @@ import {
   IcosahedronGeometry,
   TorusGeometry,
   ConeGeometry,
+  PlaneGeometry,
   MeshStandardMaterial,
   MeshBasicMaterial,
   Color,
@@ -51,8 +52,14 @@ const POWERUP_SPAWN_INTERVAL = 18;
 const POWERUP_MAGNET_DURATION = 8;
 const POWERUP_SLOWMO_DURATION = 5;
 const POWERUP_SLOWMO_FACTOR = 0.6;
+const POWERUP_DOUBLE_POINTS_DURATION = 10;
+const POWERUP_PHASE_DURATION = 4;
 const SHAKE_DECAY = 8;
 const WAVE_REST_DURATION = 3;
+
+// ── Floor pulse constants ─────────────────────────────────
+const FLOOR_PULSE_COUNT = 6;
+const FLOOR_PULSE_SPEED = 30; // m/s down corridor
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -82,6 +89,8 @@ export enum PowerUpType {
   SHIELD = 'shield',
   MAGNET = 'magnet',
   SLOW_MO = 'slow_mo',
+  DOUBLE_POINTS = 'double_points',
+  PHASE = 'phase',
 }
 
 export interface GameModeConfig {
@@ -459,6 +468,11 @@ export class GameSystem extends createSystem({}) {
   private hasShield = false;
   powerUpsCollected = 0;
 
+  // Round 4 tracking
+  private phaseDodgesThisActivation = 0;
+  private doublePointsScoreStart = 0;
+  private powerUpTypesCollected = new Set<PowerUpType>();
+
   // Challenge waves (extended)
   private challengeWaveTimer = 0;
   private challengeRestTimer = 0;
@@ -476,6 +490,12 @@ export class GameSystem extends createSystem({}) {
 
   // Screen shake
   private shakeIntensity = 0;
+
+  // Floor pulse waves
+  private floorPulses: Mesh[] = [];
+
+  // Phase visual effect
+  private phaseGlow: Mesh | null = null;
 
   setRefs(refs: { world: World; uiSystem: UISystem; corridorRefs?: CorridorRefs; audioManager?: AudioManager; statsTracker?: StatsTracker }) {
     this.worldRef = refs.world;
@@ -496,6 +516,8 @@ export class GameSystem extends createSystem({}) {
     this.createCollectiblePool();
     this.createParticlePool();
     this.createPowerUpPool();
+    this.createFloorPulses();
+    this.createPhaseGlow();
     this.hidePlayerVisual();
   }
 
@@ -580,6 +602,15 @@ export class GameSystem extends createSystem({}) {
       ['no-orbs', 'Minimalist', 'Travel 500m without collecting orbs', 500],
       ['all-lanes', 'Lane Hopper', 'Use all 3 lanes in 5 seconds', 1],
       ['speed-king', 'Speed King', 'Reach max speed in any mode', 1],
+      // Round 4 achievements
+      ['powerup-5', 'Power Hungry', 'Collect 5 power-ups in one run', 5],
+      ['powerup-10', 'Power Addict', 'Collect 10 power-ups in one run', 10],
+      ['double-pts', 'Double Trouble', 'Score 5000 points during Double Points', 5000],
+      ['phase-dodge', 'Ghost Runner', 'Phase through 3 obstacles in one activation', 3],
+      ['all-powerups', 'Full Arsenal', 'Collect all 5 power-up types in one run', 5],
+      ['combo-100', 'Century Streak', 'Get a 100-orb combo', 100],
+      ['distance-20000', 'Ultramarathon', 'Travel 20,000 meters', 20000],
+      ['survivor-600', 'Iron Will', 'Survive for 10 minutes', 600],
     ];
 
     this.achievements = defs.map(([id, name, description, target]) => ({
@@ -688,10 +719,26 @@ export class GameSystem extends createSystem({}) {
 
     // Survival achievements
     const survChecks: [string, number][] = [
-      ['survivor-60', 60], ['survivor-180', 180], ['survivor-300', 300],
+      ['survivor-60', 60], ['survivor-180', 180], ['survivor-300', 300], ['survivor-600', 600],
     ];
     for (const [id, target] of survChecks) {
       if (this.elapsedTime >= target) this.unlockAchievement(id);
+    }
+
+    // Round 4: Power-up count achievements
+    if (this.powerUpsCollected >= 5) this.unlockAchievement('powerup-5');
+    if (this.powerUpsCollected >= 10) this.unlockAchievement('powerup-10');
+
+    // Round 4: Combo 100
+    if (this.currentCombo >= 100) this.unlockAchievement('combo-100');
+
+    // Round 4: Distance 20k
+    if (this.distance >= 20000) this.unlockAchievement('distance-20000');
+
+    // Round 4: Double Points score tracking
+    if (this.activePowerUp === PowerUpType.DOUBLE_POINTS) {
+      const scored = this.score - this.doublePointsScoreStart;
+      if (scored >= 5000) this.unlockAchievement('double-pts');
     }
   }
 
@@ -847,6 +894,90 @@ export class GameSystem extends createSystem({}) {
     c.mesh.position.z = SPAWN_Z - 100;
   }
 
+  // ── Floor Pulse Waves ─────────────────────────────────
+
+  private createFloorPulses() {
+    for (let i = 0; i < FLOOR_PULSE_COUNT; i++) {
+      const geo = new PlaneGeometry(8, 0.4);
+      const mat = new MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0,
+        blending: AdditiveBlending,
+      });
+      const pulse = new Mesh(geo, mat);
+      pulse.rotation.x = -Math.PI / 2;
+      pulse.position.set(0, 0.02, -i * 20);
+      pulse.visible = false;
+      this.scene.add(pulse);
+      this.floorPulses.push(pulse);
+    }
+  }
+
+  private updateFloorPulses(dt: number, time: number) {
+    const speedFrac = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+    const show = speedFrac > 0.1;
+    const pulseSpeed = FLOOR_PULSE_SPEED + this.speed * 0.5;
+
+    for (let i = 0; i < this.floorPulses.length; i++) {
+      const p = this.floorPulses[i];
+      p.visible = show;
+      if (!show) continue;
+
+      p.position.z += pulseSpeed * dt;
+
+      // Reset when past camera
+      if (p.position.z > DESPAWN_Z) {
+        p.position.z = SPAWN_Z + Math.random() * 10;
+      }
+
+      // Opacity fades based on distance from player
+      const dz = Math.abs(p.position.z - this.playerMesh.position.z);
+      const proximity = Math.max(0, 1 - dz / 40);
+      const baseOp = speedFrac * 0.25 * proximity;
+      const pulse = 1 + Math.sin(time * 3 + i * 1.5) * 0.3;
+      (p.material as MeshBasicMaterial).opacity = baseOp * pulse;
+
+      // Color follows environment
+      (p.material as MeshBasicMaterial).color.copy(this._tmpPrimary);
+    }
+  }
+
+  // ── Phase Glow Effect ───────────────────────────────────
+
+  private createPhaseGlow() {
+    const mat = new MeshBasicMaterial({
+      color: 0xff44ff,
+      transparent: true,
+      opacity: 0,
+      blending: AdditiveBlending,
+    });
+    this.phaseGlow = new Mesh(new SphereGeometry(0.6, 12, 12), mat);
+    this.phaseGlow.visible = false;
+    this.scene.add(this.phaseGlow);
+  }
+
+  private updatePhaseGlow(time: number) {
+    if (!this.phaseGlow) return;
+    const isPhase = this.activePowerUp === PowerUpType.PHASE;
+    this.phaseGlow.visible = isPhase;
+    if (isPhase) {
+      this.phaseGlow.position.copy(this.playerMesh.position);
+      const pulse = 0.8 + Math.sin(time * 8) * 0.3;
+      this.phaseGlow.scale.setScalar(pulse);
+      (this.phaseGlow.material as MeshBasicMaterial).opacity = 0.15 + Math.sin(time * 6) * 0.08;
+
+      // Flash player mesh with phase color
+      const playerMat = this.playerMesh.material as MeshStandardMaterial;
+      const flash = Math.sin(time * 10) * 0.5 + 0.5;
+      playerMat.emissive.setRGB(flash, flash * 0.3, flash);
+    } else if (this.state === GameState.PLAYING) {
+      // Restore player color
+      const playerMat = this.playerMesh.material as MeshStandardMaterial;
+      playerMat.emissive.setHex(0x00ffff);
+    }
+  }
+
   // ── Particle System ──────────────────────────────────────
 
   private createParticlePool() {
@@ -911,13 +1042,17 @@ export class GameSystem extends createSystem({}) {
   // ── Power-Up System ─────────────────────────────────────
 
   private createPowerUpPool() {
-    const types: Array<{ type: PowerUpType; color: Color; geoFn: () => SphereGeometry | TorusGeometry | OctahedronGeometry | ConeGeometry }> = [
+    const types: Array<{ type: PowerUpType; color: Color; geoFn: () => SphereGeometry | TorusGeometry | OctahedronGeometry | ConeGeometry | IcosahedronGeometry | BoxGeometry }> = [
       { type: PowerUpType.SHIELD, color: new Color(0x4488ff),
         geoFn: () => new TorusGeometry(0.25, 0.08, 8, 16) },
       { type: PowerUpType.MAGNET, color: new Color(0xffcc00),
         geoFn: () => new OctahedronGeometry(0.22, 0) },
       { type: PowerUpType.SLOW_MO, color: new Color(0xaa44ff),
         geoFn: () => new ConeGeometry(0.2, 0.4, 6) },
+      { type: PowerUpType.DOUBLE_POINTS, color: new Color(0x00ff44),
+        geoFn: () => new IcosahedronGeometry(0.22, 0) },
+      { type: PowerUpType.PHASE, color: new Color(0xff44ff),
+        geoFn: () => new BoxGeometry(0.3, 0.3, 0.3) },
     ];
 
     for (const def of types) {
@@ -952,7 +1087,7 @@ export class GameSystem extends createSystem({}) {
   }
 
   private spawnPowerUp() {
-    const types = [PowerUpType.SHIELD, PowerUpType.MAGNET, PowerUpType.SLOW_MO];
+    const types = [PowerUpType.SHIELD, PowerUpType.MAGNET, PowerUpType.SLOW_MO, PowerUpType.DOUBLE_POINTS, PowerUpType.PHASE];
     const type = types[Math.floor(Math.random() * types.length)];
 
     const free = this.powerUps.find(p => !p.active && p.type === type);
@@ -1004,6 +1139,8 @@ export class GameSystem extends createSystem({}) {
       [PowerUpType.SHIELD]: new Color(0x4488ff),
       [PowerUpType.MAGNET]: new Color(0xffcc00),
       [PowerUpType.SLOW_MO]: new Color(0xaa44ff),
+      [PowerUpType.DOUBLE_POINTS]: new Color(0x00ff44),
+      [PowerUpType.PHASE]: new Color(0xff44ff),
     };
     this.emitParticles(
       p.group.position.x, 1, p.group.position.z,
@@ -1014,6 +1151,9 @@ export class GameSystem extends createSystem({}) {
     this.audio?.playPowerUp(p.type);
 
     this.activePowerUp = p.type;
+    this.powerUpTypesCollected.add(p.type);
+    if (this.powerUpTypesCollected.size >= 5) this.unlockAchievement('all-powerups');
+
     if (p.type === PowerUpType.SHIELD) {
       this.hasShield = true;
       this.powerUpTimer = 999; // shield lasts until used
@@ -1024,6 +1164,14 @@ export class GameSystem extends createSystem({}) {
     } else if (p.type === PowerUpType.SLOW_MO) {
       this.powerUpTimer = POWERUP_SLOWMO_DURATION;
       this.powerUpMaxTime = POWERUP_SLOWMO_DURATION;
+    } else if (p.type === PowerUpType.DOUBLE_POINTS) {
+      this.powerUpTimer = POWERUP_DOUBLE_POINTS_DURATION;
+      this.powerUpMaxTime = POWERUP_DOUBLE_POINTS_DURATION;
+      this.doublePointsScoreStart = this.score;
+    } else if (p.type === PowerUpType.PHASE) {
+      this.powerUpTimer = POWERUP_PHASE_DURATION;
+      this.powerUpMaxTime = POWERUP_PHASE_DURATION;
+      this.phaseDodgesThisActivation = 0;
     }
   }
 
@@ -1189,6 +1337,9 @@ export class GameSystem extends createSystem({}) {
     this.deactivateAllPowerUps();
     this.powerUpSpawnTimer = 0;
     this.powerUpsCollected = 0;
+    this.phaseDodgesThisActivation = 0;
+    this.doublePointsScoreStart = 0;
+    this.powerUpTypesCollected.clear();
     this.challengeWaveTimer = 0;
     this.challengeRestTimer = 0;
     this.inWaveRest = false;
@@ -1218,6 +1369,9 @@ export class GameSystem extends createSystem({}) {
       zen: 'mode-zen', endless: 'mode-endless', challenge: 'mode-challenge',
     };
     if (modeAchMap[mode]) this.unlockAchievement(modeAchMap[mode]);
+
+    // Start ambient music
+    this.audio?.startMusic();
   }
 
   pauseGame() {
@@ -1242,6 +1396,9 @@ export class GameSystem extends createSystem({}) {
     this.deactivateAllPowerUps();
     this.shakeIntensity = 0;
     this.camera.position.set(0, 1.6, 0);
+    for (const p of this.floorPulses) p.visible = false;
+    if (this.phaseGlow) this.phaseGlow.visible = false;
+    this.audio?.stopMusic();
   }
 
   showModeSelect() { this.state = GameState.MODE_SELECT; }
@@ -1305,7 +1462,8 @@ export class GameSystem extends createSystem({}) {
 
     // Distance
     this.distance += this.speed * dt;
-    this.score += this.speed * dt * DISTANCE_SCORE_RATE * 0.1;
+    const pointsMultiplier = this.activePowerUp === PowerUpType.DOUBLE_POINTS ? 2 : 1;
+    this.score += this.speed * dt * DISTANCE_SCORE_RATE * 0.1 * pointsMultiplier;
 
     // Multiplier decay
     this.multiplierTimer += dt;
@@ -1371,6 +1529,14 @@ export class GameSystem extends createSystem({}) {
     this.updateActivePowerUp(dt);
     this.updateEnvironmentColors();
     this.updateScreenShake(dt);
+
+    // Round 4 updates
+    this.updateFloorPulses(dt, time);
+    this.updatePhaseGlow(time);
+
+    // Update ambient music intensity
+    const speedFraction = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+    this.audio?.updateMusicIntensity(Math.max(0, Math.min(1, speedFraction)));
 
     // Power-up spawning
     this.powerUpSpawnTimer += dt;
@@ -1534,7 +1700,8 @@ export class GameSystem extends createSystem({}) {
     const orbColor = COLLECTIBLE_COLORS[Math.floor(Math.random() * COLLECTIBLE_COLORS.length)];
     this.emitParticles(c.mesh.position.x, c.mesh.position.y, c.mesh.position.z, orbColor, 8, 3, 0.5);
 
-    this.score += c.value * this.multiplier;
+    const pointsMultiplier = this.activePowerUp === PowerUpType.DOUBLE_POINTS ? 2 : 1;
+    this.score += c.value * this.multiplier * pointsMultiplier;
     this.orbsCollected++;
     this.totalOrbsThisRun++;
     this.currentCombo++;
@@ -1554,6 +1721,15 @@ export class GameSystem extends createSystem({}) {
   }
 
   private onHit() {
+    // Phase power-up — pass through obstacles
+    if (this.activePowerUp === PowerUpType.PHASE) {
+      this.phaseDodgesThisActivation++;
+      if (this.phaseDodgesThisActivation >= 3) this.unlockAchievement('phase-dodge');
+      this.emitParticles(this.playerX, 0.8, this.playerMesh.position.z,
+        new Color(0xff44ff), 5, 2, 0.3);
+      return;
+    }
+
     // Shield power-up absorbs the hit
     if (this.hasShield) {
       this.hasShield = false;
@@ -1621,5 +1797,8 @@ export class GameSystem extends createSystem({}) {
     this.deactivateAllPowerUps();
     this.shakeIntensity = 0;
     this.camera.position.set(0, 1.6, 0);
+    for (const p of this.floorPulses) p.visible = false;
+    if (this.phaseGlow) this.phaseGlow.visible = false;
+    this.audio?.stopMusic();
   }
 }

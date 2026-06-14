@@ -1,28 +1,34 @@
-<panel width="500" height="380" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
-  <container flexDirection="column" alignItems="center" gap="12" width="100%">
+<panel width="500" height="500" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
+  <container flexDirection="column" alignItems="center" gap="10" width="100%">
     <text fontSize="28" fontWeight="bold" color="#00ffff">HOW TO PLAY</text>
 
-    <container flexDirection="column" gap="10" width="90%" marginTop="8">
-      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="10">
-        <text fontSize="16" fontWeight="bold" color="#00ffff">Movement</text>
-        <text fontSize="13" color="#aaaacc">VR: Use thumbstick left/right</text>
-        <text fontSize="13" color="#aaaacc">Keyboard: A/D or Arrow keys</text>
+    <container flexDirection="column" gap="8" width="90%" marginTop="6">
+      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="8">
+        <text fontSize="15" fontWeight="bold" color="#00ffff">Movement</text>
+        <text fontSize="12" color="#aaaacc">VR: Thumbstick | KB: A/D or Arrows</text>
       </container>
 
-      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="10">
-        <text fontSize="16" fontWeight="bold" color="#00ff88">Collect Orbs</text>
-        <text fontSize="13" color="#aaaacc">Grab glowing orbs for points</text>
-        <text fontSize="13" color="#aaaacc">Chain orbs to build multiplier</text>
+      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="8">
+        <text fontSize="15" fontWeight="bold" color="#00ff88">Collect Orbs</text>
+        <text fontSize="12" color="#aaaacc">Grab orbs for points. Chain for multiplier!</text>
       </container>
 
-      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="10">
-        <text fontSize="16" fontWeight="bold" color="#ff4444">Dodge Obstacles</text>
-        <text fontSize="13" color="#aaaacc">Switch lanes to avoid barriers</text>
-        <text fontSize="13" color="#aaaacc">Speed increases over time</text>
+      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="8">
+        <text fontSize="15" fontWeight="bold" color="#ff4444">Dodge Obstacles</text>
+        <text fontSize="12" color="#aaaacc">Switch lanes to avoid. Speed increases!</text>
+      </container>
+
+      <container flexDirection="column" gap="4" backgroundColor="#ffffff08" borderRadius="8" padding="8">
+        <text fontSize="15" fontWeight="bold" color="#ffcc00">Power-Ups</text>
+        <text fontSize="12" color="#4488ff">Shield - Absorbs one hit</text>
+        <text fontSize="12" color="#ffcc00">Magnet - Auto-collect nearby orbs</text>
+        <text fontSize="12" color="#aa44ff">Slow-Mo - Reduces speed 40%</text>
+        <text fontSize="12" color="#00ff44">2X Points - Double all scoring</text>
+        <text fontSize="12" color="#ff44ff">Phase - Pass through obstacles</text>
       </container>
     </container>
 
-    <container flexDirection="row" gap="10" width="80%" marginTop="8">
+    <container flexDirection="row" gap="10" width="80%" marginTop="6">
       <text name="btn-play" fontSize="18" fontWeight="bold" color="#000000" backgroundColor="#00ffff"
             borderRadius="8" padding="10" textAlign="center" flexGrow="1"
             hover-backgroundColor="#44ffff" cursor="pointer">Play Now</text>

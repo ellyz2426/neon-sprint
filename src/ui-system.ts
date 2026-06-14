@@ -81,6 +81,8 @@ export class UISystem extends createSystem({
   private achievementToast = '';
   private achievementToastTimer = 0;
   private lastHudUpdate = 0;
+  private achPage = 0;
+  private readonly ACH_PER_PAGE = 16;
 
   /** Hide/show an entity based on current game state */
   private syncVisibility(entity: Entity, shouldShow: boolean) {
@@ -306,6 +308,25 @@ export class UISystem extends createSystem({
         this.audio?.playClick();
         this.gameSystem.showMenu();
       });
+
+      const prevBtn = doc.getElementById('btn-prev-ach') as UIKit.Text | undefined;
+      prevBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        if (this.achPage > 0) {
+          this.achPage--;
+          this.updateAchievementsPanel();
+        }
+      });
+
+      const nextBtn = doc.getElementById('btn-next-ach') as UIKit.Text | undefined;
+      nextBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        const totalPages = Math.ceil(this.gameSystem.achievements.length / this.ACH_PER_PAGE);
+        if (this.achPage < totalPages - 1) {
+          this.achPage++;
+          this.updateAchievementsPanel();
+        }
+      });
     });
 
     // Tutorial
@@ -465,6 +486,8 @@ export class UISystem extends createSystem({
         [PowerUpType.SHIELD]: 'SHIELD',
         [PowerUpType.MAGNET]: 'MAGNET',
         [PowerUpType.SLOW_MO]: 'SLOW-MO',
+        [PowerUpType.DOUBLE_POINTS]: '2X PTS',
+        [PowerUpType.PHASE]: 'PHASE',
       };
       const label = puLabels[gs.activePowerUp] || '';
       if (gs.activePowerUp === PowerUpType.SHIELD) {
@@ -536,13 +559,25 @@ export class UISystem extends createSystem({
     const total = gs.achievements.length;
     setText(doc, 'ach-count', `${unlocked} / ${total}`);
 
-    // Update achievement list (first 12 shown)
-    for (let i = 0; i < 12; i++) {
-      const a = gs.achievements[i];
+    const totalPages = Math.ceil(total / this.ACH_PER_PAGE);
+    setText(doc, 'ach-page', `Page ${this.achPage + 1}/${totalPages}`);
+
+    // Update achievement list (paginated, 16 per page)
+    const start = this.achPage * this.ACH_PER_PAGE;
+    for (let i = 0; i < this.ACH_PER_PAGE; i++) {
+      const idx = start + i;
+      const a = gs.achievements[idx];
       if (a) {
         setText(doc, `ach-name-${i}`, a.name);
         setText(doc, `ach-desc-${i}`, a.description);
         setText(doc, `ach-status-${i}`, a.unlocked ? '[DONE]' : '[ ]');
+        setVisible(doc, `ach-name-${i}`, true);
+        setVisible(doc, `ach-desc-${i}`, true);
+        setVisible(doc, `ach-status-${i}`, true);
+      } else {
+        setText(doc, `ach-name-${i}`, '');
+        setText(doc, `ach-desc-${i}`, '');
+        setText(doc, `ach-status-${i}`, '');
       }
     }
   }
