@@ -1,0 +1,6 @@
+<panel width="400" height="120" backgroundColor="#ffff0022" borderRadius="12" borderWidth="2" borderColor="#ffff0088" padding="16">
+  <container flexDirection="column" alignItems="center" justifyContent="center" width="100%" gap="8">
+    <text fontSize="32" fontWeight="bold" color="#ffff00">NEW RECORD!</text>
+    <text fontSize="16" color="#ffcc00">You set a new high score!</text>
+  </container>
+</panel>

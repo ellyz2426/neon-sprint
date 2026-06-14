@@ -1,0 +1,24 @@
+<panel width="500" height="100" backgroundColor="#0a0a1acc" borderRadius="12" borderWidth="1" borderColor="#00ffff33" padding="8">
+  <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%" gap="12">
+    <container flexDirection="column" alignItems="flex-start" gap="2">
+      <text name="score" fontSize="20" fontWeight="bold" color="#00ffff">Score: 0</text>
+      <text name="distance" fontSize="14" color="#4488cc">0m</text>
+    </container>
+
+    <container flexDirection="column" alignItems="center" gap="2">
+      <text name="multiplier" fontSize="24" fontWeight="bold" color="#ffff00"></text>
+      <text name="orbs" fontSize="12" color="#00ff88">Orbs: 0</text>
+    </container>
+
+    <container flexDirection="column" alignItems="center" gap="2">
+      <text name="speed" fontSize="14" color="#8888cc">10.0 m/s</text>
+      <text name="timer" fontSize="16" fontWeight="bold" color="#ff8800" display="none">1:30</text>
+      <text name="progress" fontSize="14" color="#00ff88" display="none">0%</text>
+    </container>
+
+    <text name="lives" fontSize="22" color="#ff4444">***</text>
+  </container>
+
+  <text name="achievement-toast" fontSize="12" color="#ffff00" backgroundColor="#ffff0033"
+        borderRadius="6" padding="4" textAlign="center" display="none" marginTop="4"></text>
+</panel>

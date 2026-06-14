@@ -1,0 +1,17 @@
+<panel width="400" height="280" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
+  <container flexDirection="column" alignItems="center" gap="16" width="100%">
+    <text fontSize="32" fontWeight="bold" color="#00ffff">PAUSED</text>
+
+    <container flexDirection="column" gap="10" width="80%" marginTop="8">
+      <text name="btn-resume" fontSize="22" fontWeight="bold" color="#000000" backgroundColor="#00ffff"
+            borderRadius="8" padding="12" textAlign="center"
+            hover-backgroundColor="#44ffff" cursor="pointer">Resume</text>
+
+      <text name="btn-quit" fontSize="18" color="#ff4444" backgroundColor="#ff444422"
+            borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#ff444444"
+            hover-backgroundColor="#ff444444" cursor="pointer">Quit to Menu</text>
+    </container>
+
+    <text fontSize="12" color="#666688" marginTop="8">Press ESC or B to resume</text>
+  </container>
+</panel>

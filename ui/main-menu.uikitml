@@ -1,0 +1,30 @@
+<panel width="600" height="420" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
+  <container flexDirection="column" alignItems="center" gap="16" width="100%">
+    <text name="title" fontSize="48" fontWeight="bold" color="#00ffff" marginBottom="4">NEON SPRINT</text>
+    <text name="subtitle" fontSize="16" color="#4488cc">VR Endless Runner</text>
+
+    <container flexDirection="column" gap="10" width="80%" marginTop="16">
+      <text name="btn-play" fontSize="22" fontWeight="bold" color="#000000" backgroundColor="#00ffff"
+            borderRadius="8" padding="12" textAlign="center" hover-backgroundColor="#44ffff"
+            cursor="pointer">PLAY</text>
+
+      <text name="btn-modes" fontSize="18" color="#00ffff" backgroundColor="#00ffff22"
+            borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#00ffff44"
+            hover-backgroundColor="#00ffff44" cursor="pointer">Game Modes</text>
+
+      <text name="btn-tutorial" fontSize="18" color="#00ffff" backgroundColor="#00ffff22"
+            borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#00ffff44"
+            hover-backgroundColor="#00ffff44" cursor="pointer">How to Play</text>
+
+      <container flexDirection="row" gap="10" width="100%">
+        <text name="btn-achievements" fontSize="16" color="#ffff00" backgroundColor="#ffff0022"
+              borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#ffff0044"
+              hover-backgroundColor="#ffff0044" cursor="pointer" flexGrow="1">Achievements</text>
+
+        <text name="btn-settings" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
+              borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
+              hover-backgroundColor="#8888cc44" cursor="pointer" flexGrow="1">Settings</text>
+      </container>
+    </container>
+  </container>
+</panel>
