@@ -9,6 +9,9 @@ import {
 } from '@iwsdk/core';
 
 import { GameSystem, GameState, GameMode, GAME_MODES, PowerUpType } from './game-system.js';
+import type { AudioManager } from './audio-system.js';
+import type { StatsTracker } from './stats-tracker.js';
+import { StatsTracker as StatsTrackerClass } from './stats-tracker.js';
 
 // ── Helper ────────────────────────────────────────────────────
 
@@ -66,8 +69,14 @@ export class UISystem extends createSystem({
     required: [PanelUI, PanelDocument],
     where: [eq(PanelUI, 'config', './ui/new-record.json')],
   },
+  stats: {
+    required: [PanelUI, PanelDocument],
+    where: [eq(PanelUI, 'config', './ui/stats.json')],
+  },
 }) {
   private gameSystem!: GameSystem;
+  private audio!: AudioManager;
+  private statsTracker!: StatsTracker;
   private prevState: GameState | null = null;
   private achievementToast = '';
   private achievementToastTimer = 0;
@@ -89,9 +98,12 @@ export class UISystem extends createSystem({
   private tutorialEntity: Entity | null = null;
   private countdownEntity: Entity | null = null;
   private newRecordEntity: Entity | null = null;
+  private statsEntity: Entity | null = null;
 
-  setRefs(refs: { gameSystem: GameSystem }) {
+  setRefs(refs: { gameSystem: GameSystem; audioManager?: AudioManager; statsTracker?: StatsTracker }) {
     this.gameSystem = refs.gameSystem;
+    if (refs.audioManager) this.audio = refs.audioManager;
+    if (refs.statsTracker) this.statsTracker = refs.statsTracker;
   }
 
   init() {
@@ -103,19 +115,40 @@ export class UISystem extends createSystem({
       if (!doc) return;
 
       const playBtn = doc.getElementById('btn-play') as UIKit.Text | undefined;
-      playBtn?.addEventListener('click', () => this.gameSystem.startGame(GameMode.CLASSIC));
+      playBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.startGame(GameMode.CLASSIC);
+      });
 
       const modesBtn = doc.getElementById('btn-modes') as UIKit.Text | undefined;
-      modesBtn?.addEventListener('click', () => this.gameSystem.showModeSelect());
+      modesBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showModeSelect();
+      });
 
       const settingsBtn = doc.getElementById('btn-settings') as UIKit.Text | undefined;
-      settingsBtn?.addEventListener('click', () => this.gameSystem.showSettings());
+      settingsBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showSettings();
+      });
 
       const achievementsBtn = doc.getElementById('btn-achievements') as UIKit.Text | undefined;
-      achievementsBtn?.addEventListener('click', () => this.gameSystem.showAchievements());
+      achievementsBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showAchievements();
+      });
 
       const tutorialBtn = doc.getElementById('btn-tutorial') as UIKit.Text | undefined;
-      tutorialBtn?.addEventListener('click', () => this.gameSystem.showTutorial());
+      tutorialBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showTutorial();
+      });
+
+      const statsBtn = doc.getElementById('btn-stats') as UIKit.Text | undefined;
+      statsBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showStats();
+      });
     });
 
     // HUD
@@ -132,10 +165,16 @@ export class UISystem extends createSystem({
       if (!doc) return;
 
       const retryBtn = doc.getElementById('btn-retry') as UIKit.Text | undefined;
-      retryBtn?.addEventListener('click', () => this.gameSystem.startGame(this.gameSystem.mode));
+      retryBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.startGame(this.gameSystem.mode);
+      });
 
       const menuBtn = doc.getElementById('btn-menu') as UIKit.Text | undefined;
-      menuBtn?.addEventListener('click', () => this.gameSystem.quitToMenu());
+      menuBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.quitToMenu();
+      });
     });
 
     // Pause Menu
@@ -146,10 +185,16 @@ export class UISystem extends createSystem({
       if (!doc) return;
 
       const resumeBtn = doc.getElementById('btn-resume') as UIKit.Text | undefined;
-      resumeBtn?.addEventListener('click', () => this.gameSystem.resumeGame());
+      resumeBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.resumeGame();
+      });
 
       const quitBtn = doc.getElementById('btn-quit') as UIKit.Text | undefined;
-      quitBtn?.addEventListener('click', () => this.gameSystem.quitToMenu());
+      quitBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.quitToMenu();
+      });
     });
 
     // Mode Select
@@ -162,11 +207,17 @@ export class UISystem extends createSystem({
       const modes = [GameMode.CLASSIC, GameMode.SPRINT, GameMode.TIME_ATTACK, GameMode.ZEN, GameMode.ENDLESS, GameMode.CHALLENGE];
       for (const mode of modes) {
         const btn = doc.getElementById(`btn-${mode}`) as UIKit.Text | undefined;
-        btn?.addEventListener('click', () => this.gameSystem.startGame(mode));
+        btn?.addEventListener('click', () => {
+          this.audio?.playClick();
+          this.gameSystem.startGame(mode);
+        });
       }
 
       const backBtn = doc.getElementById('btn-back') as UIKit.Text | undefined;
-      backBtn?.addEventListener('click', () => this.gameSystem.showMenu());
+      backBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showMenu();
+      });
     });
 
     // Settings
@@ -177,7 +228,70 @@ export class UISystem extends createSystem({
       if (!doc) return;
 
       const backBtn = doc.getElementById('btn-back') as UIKit.Text | undefined;
-      backBtn?.addEventListener('click', () => this.gameSystem.showMenu());
+      backBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showMenu();
+      });
+
+      // Sound toggle
+      const soundBtn = doc.getElementById('btn-toggle-sound') as UIKit.Text | undefined;
+      soundBtn?.addEventListener('click', () => {
+        if (this.audio) {
+          this.audio.muted = !this.audio.muted;
+          setText(doc, 'btn-toggle-sound', this.audio.muted ? 'OFF' : 'ON');
+        }
+        this.audio?.playClick();
+      });
+
+      // Volume controls
+      const volDown = doc.getElementById('btn-vol-down') as UIKit.Text | undefined;
+      volDown?.addEventListener('click', () => {
+        if (this.audio) {
+          this.audio.volume = Math.max(0, this.audio.volume - 0.1);
+          setText(doc, 'volume-display', `${Math.round(this.audio.volume * 100)}%`);
+        }
+        this.audio?.playClick();
+      });
+
+      const volUp = doc.getElementById('btn-vol-up') as UIKit.Text | undefined;
+      volUp?.addEventListener('click', () => {
+        if (this.audio) {
+          this.audio.volume = Math.min(1, this.audio.volume + 0.1);
+          setText(doc, 'volume-display', `${Math.round(this.audio.volume * 100)}%`);
+        }
+        this.audio?.playClick();
+      });
+
+      // Screen shake toggle
+      const shakeBtn = doc.getElementById('btn-toggle-shake') as UIKit.Text | undefined;
+      shakeBtn?.addEventListener('click', () => {
+        this.gameSystem.screenShakeEnabled = !this.gameSystem.screenShakeEnabled;
+        setText(doc, 'btn-toggle-shake', this.gameSystem.screenShakeEnabled ? 'ON' : 'OFF');
+        this.gameSystem.savePrefs();
+        this.audio?.playClick();
+      });
+
+      // Speed lines toggle
+      const linesBtn = doc.getElementById('btn-toggle-lines') as UIKit.Text | undefined;
+      linesBtn?.addEventListener('click', () => {
+        this.gameSystem.speedLinesEnabled = !this.gameSystem.speedLinesEnabled;
+        setText(doc, 'btn-toggle-lines', this.gameSystem.speedLinesEnabled ? 'ON' : 'OFF');
+        this.gameSystem.savePrefs();
+        this.audio?.playClick();
+      });
+
+      // Reset buttons
+      const resetScoresBtn = doc.getElementById('btn-reset-scores') as UIKit.Text | undefined;
+      resetScoresBtn?.addEventListener('click', () => {
+        this.gameSystem.resetHighScores();
+        this.audio?.playClick();
+      });
+
+      const resetAllBtn = doc.getElementById('btn-reset-all') as UIKit.Text | undefined;
+      resetAllBtn?.addEventListener('click', () => {
+        this.gameSystem.resetAllData();
+        this.audio?.playClick();
+      });
     });
 
     // Achievements
@@ -188,7 +302,10 @@ export class UISystem extends createSystem({
       if (!doc) return;
 
       const backBtn = doc.getElementById('btn-back') as UIKit.Text | undefined;
-      backBtn?.addEventListener('click', () => this.gameSystem.showMenu());
+      backBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showMenu();
+      });
     });
 
     // Tutorial
@@ -199,10 +316,16 @@ export class UISystem extends createSystem({
       if (!doc) return;
 
       const backBtn = doc.getElementById('btn-back') as UIKit.Text | undefined;
-      backBtn?.addEventListener('click', () => this.gameSystem.showMenu());
+      backBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showMenu();
+      });
 
       const playBtn = doc.getElementById('btn-play') as UIKit.Text | undefined;
-      playBtn?.addEventListener('click', () => this.gameSystem.startGame(GameMode.CLASSIC));
+      playBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.startGame(GameMode.CLASSIC);
+      });
     });
 
     // Countdown
@@ -215,6 +338,20 @@ export class UISystem extends createSystem({
     this.queries.newRecord.subscribe('qualify', (entity) => {
       this.newRecordEntity = entity;
       this.syncVisibility(entity, false);
+    });
+
+    // Stats
+    this.queries.stats.subscribe('qualify', (entity) => {
+      this.statsEntity = entity;
+      this.syncVisibility(entity, false);
+      const doc = getDoc(entity);
+      if (!doc) return;
+
+      const backBtn = doc.getElementById('btn-back') as UIKit.Text | undefined;
+      backBtn?.addEventListener('click', () => {
+        this.audio?.playClick();
+        this.gameSystem.showMenu();
+      });
     });
   }
 
@@ -235,6 +372,9 @@ export class UISystem extends createSystem({
       // Update content on state enter
       if (state === GameState.GAME_OVER) this.updateGameOverPanel();
       if (state === GameState.ACHIEVEMENTS) this.updateAchievementsPanel();
+      if (state === GameState.STATS) this.updateStatsPanel();
+      if (state === GameState.MENU) this.updateMainMenuPanel();
+      if (state === GameState.SETTINGS) this.updateSettingsPanel();
     }
 
     // Continuous updates
@@ -279,6 +419,7 @@ export class UISystem extends createSystem({
     show(this.tutorialEntity, state === GameState.TUTORIAL);
     show(this.countdownEntity, state === GameState.COUNTDOWN);
     show(this.newRecordEntity, state === GameState.GAME_OVER && this.gameSystem.isNewRecord);
+    show(this.statsEntity, state === GameState.STATS);
   }
 
   private updateHUD() {
@@ -404,5 +545,50 @@ export class UISystem extends createSystem({
         setText(doc, `ach-status-${i}`, a.unlocked ? '[DONE]' : '[ ]');
       }
     }
+  }
+
+  private updateStatsPanel() {
+    if (!this.statsEntity || !this.statsTracker) return;
+    const doc = getDoc(this.statsEntity);
+    if (!doc) return;
+
+    const s = this.statsTracker.get();
+    setText(doc, 'stat-games', `${s.totalGames}`);
+    setText(doc, 'stat-distance', StatsTrackerClass.formatDistance(s.totalDistance));
+    setText(doc, 'stat-orbs', `${s.totalOrbs.toLocaleString()}`);
+    setText(doc, 'stat-score', `${Math.floor(s.totalScore).toLocaleString()}`);
+    setText(doc, 'stat-time', StatsTrackerClass.formatTime(s.totalTimePlayed));
+    setText(doc, 'stat-longest', StatsTrackerClass.formatDistance(s.longestRun));
+    setText(doc, 'stat-speed', `${s.highestSpeed.toFixed(1)} m/s`);
+    setText(doc, 'stat-combo', `${s.longestCombo}`);
+    setText(doc, 'stat-powerups', `${s.totalPowerUps}`);
+  }
+
+  private updateMainMenuPanel() {
+    if (!this.menuEntity) return;
+    const doc = getDoc(this.menuEntity);
+    if (!doc) return;
+
+    // Show best classic score
+    const bestScore = this.gameSystem.highScores['classic'] || 0;
+    if (bestScore > 0) {
+      setText(doc, 'best-score', `Best: ${bestScore.toLocaleString()}`);
+    } else {
+      setText(doc, 'best-score', '');
+    }
+  }
+
+  private updateSettingsPanel() {
+    if (!this.settingsEntity) return;
+    const doc = getDoc(this.settingsEntity);
+    if (!doc) return;
+
+    // Sync current values
+    if (this.audio) {
+      setText(doc, 'btn-toggle-sound', this.audio.muted ? 'OFF' : 'ON');
+      setText(doc, 'volume-display', `${Math.round(this.audio.volume * 100)}%`);
+    }
+    setText(doc, 'btn-toggle-shake', this.gameSystem.screenShakeEnabled ? 'ON' : 'OFF');
+    setText(doc, 'btn-toggle-lines', this.gameSystem.speedLinesEnabled ? 'ON' : 'OFF');
   }
 }

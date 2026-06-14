@@ -1,24 +1,51 @@
-<panel width="400" height="280" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#8888cc44" padding="24">
-  <container flexDirection="column" alignItems="center" gap="12" width="100%">
+<panel width="420" height="380" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#8888cc44" padding="24">
+  <container flexDirection="column" alignItems="center" gap="10" width="100%">
     <text fontSize="28" fontWeight="bold" color="#8888cc">SETTINGS</text>
 
-    <container flexDirection="column" gap="8" width="80%" marginTop="8">
+    <container flexDirection="column" gap="8" width="85%" marginTop="8">
       <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
         <text fontSize="16" color="#aaaacc">Sound Effects</text>
-        <text fontSize="14" color="#00ffff">ON</text>
+        <text name="btn-toggle-sound" fontSize="14" color="#00ffff" backgroundColor="#00ffff22"
+              borderRadius="6" padding="6" cursor="pointer" hover-backgroundColor="#00ffff44"
+              borderWidth="1" borderColor="#00ffff44">ON</text>
       </container>
       <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
-        <text fontSize="16" color="#aaaacc">Speed Lines</text>
-        <text fontSize="14" color="#00ffff">ON</text>
+        <text fontSize="16" color="#aaaacc">Volume</text>
+        <container flexDirection="row" gap="6" alignItems="center">
+          <text name="btn-vol-down" fontSize="16" color="#00ffff" backgroundColor="#00ffff22"
+                borderRadius="6" padding="4" cursor="pointer" hover-backgroundColor="#00ffff44"
+                borderWidth="1" borderColor="#00ffff44"> - </text>
+          <text name="volume-display" fontSize="14" color="#00ffff" width="40" textAlign="center">50%</text>
+          <text name="btn-vol-up" fontSize="16" color="#00ffff" backgroundColor="#00ffff22"
+                borderRadius="6" padding="4" cursor="pointer" hover-backgroundColor="#00ffff44"
+                borderWidth="1" borderColor="#00ffff44"> + </text>
+        </container>
       </container>
       <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
         <text fontSize="16" color="#aaaacc">Screen Shake</text>
-        <text fontSize="14" color="#00ffff">ON</text>
+        <text name="btn-toggle-shake" fontSize="14" color="#00ffff" backgroundColor="#00ffff22"
+              borderRadius="6" padding="6" cursor="pointer" hover-backgroundColor="#00ffff44"
+              borderWidth="1" borderColor="#00ffff44">ON</text>
       </container>
+      <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
+        <text fontSize="16" color="#aaaacc">Speed Lines</text>
+        <text name="btn-toggle-lines" fontSize="14" color="#00ffff" backgroundColor="#00ffff22"
+              borderRadius="6" padding="6" cursor="pointer" hover-backgroundColor="#00ffff44"
+              borderWidth="1" borderColor="#00ffff44">ON</text>
+      </container>
+    </container>
+
+    <container flexDirection="column" gap="6" width="85%" marginTop="6">
+      <text name="btn-reset-scores" fontSize="14" color="#ff4444" backgroundColor="#ff444422"
+            borderRadius="6" padding="8" textAlign="center" cursor="pointer"
+            hover-backgroundColor="#ff444444" borderWidth="1" borderColor="#ff444444">Reset High Scores</text>
+      <text name="btn-reset-all" fontSize="14" color="#ff4444" backgroundColor="#ff444422"
+            borderRadius="6" padding="8" textAlign="center" cursor="pointer"
+            hover-backgroundColor="#ff444444" borderWidth="1" borderColor="#ff444444">Reset All Data</text>
     </container>
 
     <text name="btn-back" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
           borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
-          hover-backgroundColor="#8888cc44" cursor="pointer" width="60%" marginTop="12">Back</text>
+          hover-backgroundColor="#8888cc44" cursor="pointer" width="60%" marginTop="6">Back</text>
   </container>
 </panel>

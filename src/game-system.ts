@@ -20,6 +20,8 @@ import {
 } from '@iwsdk/core';
 
 import type { UISystem } from './ui-system.js';
+import type { AudioManager } from './audio-system.js';
+import type { StatsTracker } from './stats-tracker.js';
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ export enum GameState {
   SETTINGS = 'settings',
   ACHIEVEMENTS = 'achievements',
   TUTORIAL = 'tutorial',
+  STATS = 'stats',
   COUNTDOWN = 'countdown',
   PLAYING = 'playing',
   PAUSED = 'paused',
@@ -376,6 +379,8 @@ interface KeyboardLike {
 export class GameSystem extends createSystem({}) {
   private worldRef!: World;
   private uiSystem!: UISystem;
+  private audio!: AudioManager;
+  private stats!: StatsTracker;
 
   /** Access keyboard via the runtime InputManager (not exposed in types) */
   _kb(): KeyboardLike {
@@ -386,6 +391,10 @@ export class GameSystem extends createSystem({}) {
   state: GameState = GameState.MENU;
   mode: GameMode = GameMode.CLASSIC;
   modeConfig: GameModeConfig = GAME_MODES[GameMode.CLASSIC];
+
+  // Settings
+  screenShakeEnabled = true;
+  speedLinesEnabled = true;
 
   // Player
   private playerLane = 1; // 0=left, 1=center, 2=right
@@ -468,15 +477,19 @@ export class GameSystem extends createSystem({}) {
   // Screen shake
   private shakeIntensity = 0;
 
-  setRefs(refs: { world: World; uiSystem: UISystem; corridorRefs?: CorridorRefs }) {
+  setRefs(refs: { world: World; uiSystem: UISystem; corridorRefs?: CorridorRefs; audioManager?: AudioManager; statsTracker?: StatsTracker }) {
     this.worldRef = refs.world;
     this.uiSystem = refs.uiSystem;
     if (refs.corridorRefs) this.corridorRefs = refs.corridorRefs;
+    if (refs.audioManager) this.audio = refs.audioManager;
+    if (refs.statsTracker) this.stats = refs.statsTracker;
+    this.loadPrefs();
   }
 
   init() {
     this.initAchievements();
     this.loadHighScores();
+    this.loadPrefs();
     this.createPlayerVisual();
     this.createSpeedLines();
     this.createObstaclePool();
@@ -484,6 +497,45 @@ export class GameSystem extends createSystem({}) {
     this.createParticlePool();
     this.createPowerUpPool();
     this.hidePlayerVisual();
+  }
+
+  private loadPrefs() {
+    try {
+      const data = localStorage.getItem('neon-sprint-prefs');
+      if (data) {
+        const p = JSON.parse(data);
+        if (typeof p.screenShake === 'boolean') this.screenShakeEnabled = p.screenShake;
+        if (typeof p.speedLines === 'boolean') this.speedLinesEnabled = p.speedLines;
+      }
+    } catch { /* ignore */ }
+  }
+
+  savePrefs() {
+    try {
+      localStorage.setItem('neon-sprint-prefs', JSON.stringify({
+        screenShake: this.screenShakeEnabled,
+        speedLines: this.speedLinesEnabled,
+      }));
+    } catch { /* ignore */ }
+  }
+
+  resetHighScores() {
+    this.highScores = {};
+    this.saveHighScores();
+  }
+
+  resetAllData() {
+    this.highScores = {};
+    this.saveHighScores();
+    for (const a of this.achievements) {
+      a.unlocked = false;
+      a.progress = 0;
+    }
+    this.saveAchievements();
+    if (this.stats) this.stats.reset();
+    try { localStorage.removeItem('neon-sprint-prefs'); } catch { /* ignore */ }
+    this.screenShakeEnabled = true;
+    this.speedLinesEnabled = true;
   }
 
   private initAchievements() {
@@ -578,6 +630,7 @@ export class GameSystem extends createSystem({}) {
       a.unlocked = true;
       this.saveAchievements();
       this.uiSystem?.showAchievementToast(a.name);
+      this.audio?.playAchievement();
     }
   }
 
@@ -700,7 +753,7 @@ export class GameSystem extends createSystem({}) {
   private updateSpeedLines(delta: number) {
     const speedFraction = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
     const opacity = Math.max(0, speedFraction - 0.3) * 0.5;
-    const show = opacity > 0.01;
+    const show = opacity > 0.01 && this.speedLinesEnabled;
 
     for (const line of this.speedLines) {
       line.visible = show;
@@ -957,6 +1010,9 @@ export class GameSystem extends createSystem({}) {
       colorMap[p.type] || new Color(0xffffff), 10, 3, 0.6,
     );
 
+    // Audio
+    this.audio?.playPowerUp(p.type);
+
     this.activePowerUp = p.type;
     if (p.type === PowerUpType.SHIELD) {
       this.hasShield = true;
@@ -1192,6 +1248,7 @@ export class GameSystem extends createSystem({}) {
   showSettings() { this.state = GameState.SETTINGS; }
   showAchievements() { this.state = GameState.ACHIEVEMENTS; }
   showTutorial() { this.state = GameState.TUTORIAL; }
+  showStats() { this.state = GameState.STATS; }
   showMenu() { this.state = GameState.MENU; }
 
   getAchievementCount(): number {
@@ -1225,6 +1282,7 @@ export class GameSystem extends createSystem({}) {
     if (this.countdownTimer >= 1) {
       this.countdownTimer -= 1;
       this.countdownValue--;
+      this.audio?.playCountdown(this.countdownValue);
       if (this.countdownValue <= 0) {
         this.state = GameState.PLAYING;
       }
@@ -1409,10 +1467,12 @@ export class GameSystem extends createSystem({}) {
     if (moveLeft && this.playerLane > 0) {
       this.playerLane--;
       this.laneSwitchCooldown = LANE_SWITCH_COOLDOWN;
+      this.audio?.playLaneSwitch();
     }
     if (moveRight && this.playerLane < 2) {
       this.playerLane++;
       this.laneSwitchCooldown = LANE_SWITCH_COOLDOWN;
+      this.audio?.playLaneSwitch();
     }
   }
 
@@ -1481,9 +1541,13 @@ export class GameSystem extends createSystem({}) {
     this.longestCombo = Math.max(this.longestCombo, this.currentCombo);
     this.multiplierTimer = 0;
 
+    // Audio
+    this.audio?.playOrbCollect(this.multiplier);
+
     // Increase multiplier every 3 orbs
     if (this.currentCombo % 3 === 0 && this.multiplier < MAX_MULTIPLIER) {
       this.multiplier++;
+      this.audio?.playMultiplierUp(this.multiplier);
     }
 
     this.deactivateCollectible(c);
@@ -1497,7 +1561,8 @@ export class GameSystem extends createSystem({}) {
       this.powerUpTimer = 0;
       this.emitParticles(this.playerX, 0.8, this.playerMesh.position.z,
         new Color(0x4488ff), 15, 5, 0.8);
-      this.shakeIntensity = 0.08;
+      if (this.screenShakeEnabled) this.shakeIntensity = 0.08;
+      this.audio?.playShieldBreak();
       return;
     }
 
@@ -1506,7 +1571,10 @@ export class GameSystem extends createSystem({}) {
     this.emitParticles(this.playerX, 0.6, this.playerMesh.position.z, hitColor, 12, 4, 0.6);
 
     // Screen shake
-    this.shakeIntensity = 0.15;
+    if (this.screenShakeEnabled) this.shakeIntensity = 0.15;
+
+    // Audio
+    this.audio?.playHit();
 
     this.lives--;
     this.multiplier = 1;
@@ -1521,6 +1589,21 @@ export class GameSystem extends createSystem({}) {
   private endGame() {
     this.state = GameState.GAME_OVER;
 
+    // Record lifetime stats
+    if (this.stats) {
+      this.stats.recordRun({
+        mode: this.mode,
+        distance: this.distance,
+        orbs: this.totalOrbsThisRun,
+        score: this.score,
+        time: this.elapsedTime,
+        powerUps: this.powerUpsCollected,
+        maxSpeed: this.maxSpeed,
+        longestCombo: this.longestCombo,
+        bestMultiplier: this.multiplier,
+      });
+    }
+
     // Check/save high score
     const key = this.mode;
     const prev = this.highScores[key] || 0;
@@ -1528,6 +1611,9 @@ export class GameSystem extends createSystem({}) {
       this.highScores[key] = Math.floor(this.score);
       this.isNewRecord = true;
       this.saveHighScores();
+      this.audio?.playNewRecord();
+    } else {
+      this.audio?.playGameOver();
     }
 
     this.hidePlayerVisual();

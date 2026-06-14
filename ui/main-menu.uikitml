@@ -1,9 +1,11 @@
-<panel width="600" height="420" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
-  <container flexDirection="column" alignItems="center" gap="16" width="100%">
-    <text name="title" fontSize="48" fontWeight="bold" color="#00ffff" marginBottom="4">NEON SPRINT</text>
+<panel width="600" height="500" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ffff44" padding="24">
+  <container flexDirection="column" alignItems="center" gap="12" width="100%">
+    <text name="title" fontSize="48" fontWeight="bold" color="#00ffff" marginBottom="2">NEON SPRINT</text>
     <text name="subtitle" fontSize="16" color="#4488cc">VR Endless Runner</text>
 
-    <container flexDirection="column" gap="10" width="80%" marginTop="16">
+    <text name="best-score" fontSize="14" color="#ffff00" marginTop="2">Best: 0</text>
+
+    <container flexDirection="column" gap="10" width="80%" marginTop="8">
       <text name="btn-play" fontSize="22" fontWeight="bold" color="#000000" backgroundColor="#00ffff"
             borderRadius="8" padding="12" textAlign="center" hover-backgroundColor="#44ffff"
             cursor="pointer">PLAY</text>
@@ -21,10 +23,14 @@
               borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#ffff0044"
               hover-backgroundColor="#ffff0044" cursor="pointer" flexGrow="1">Achievements</text>
 
-        <text name="btn-settings" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
-              borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
-              hover-backgroundColor="#8888cc44" cursor="pointer" flexGrow="1">Settings</text>
+        <text name="btn-stats" fontSize="16" color="#00ff88" backgroundColor="#00ff8822"
+              borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#00ff8844"
+              hover-backgroundColor="#00ff8844" cursor="pointer" flexGrow="1">Stats</text>
       </container>
+
+      <text name="btn-settings" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
+            borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
+            hover-backgroundColor="#8888cc44" cursor="pointer" width="100%">Settings</text>
     </container>
   </container>
 </panel>

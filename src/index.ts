@@ -23,6 +23,8 @@ import {
 import { GameSystem } from './game-system.js';
 import { UISystem } from './ui-system.js';
 import type { CorridorRefs } from './game-system.js';
+import { audioManager } from './audio-system.js';
+import { statsTracker } from './stats-tracker.js';
 
 async function main() {
   const container = document.getElementById('app') as HTMLDivElement;
@@ -87,6 +89,7 @@ async function main() {
     { config: './ui/tutorial.json', offset: [0, 0, -2.5], spd: 6 },
     { config: './ui/countdown.json', offset: [0, 0.2, -2], spd: 10 },
     { config: './ui/new-record.json', offset: [0, 0.4, -2], spd: 8 },
+    { config: './ui/stats.json', offset: [0, 0, -2.5], spd: 6 },
   ];
 
   for (const pc of panelConfigs) {
@@ -99,8 +102,8 @@ async function main() {
     });
   }
 
-  gameSystem.setRefs({ world, uiSystem, corridorRefs });
-  uiSystem.setRefs({ gameSystem });
+  gameSystem.setRefs({ world, uiSystem, corridorRefs, audioManager, statsTracker });
+  uiSystem.setRefs({ gameSystem, audioManager, statsTracker });
 }
 
 function buildCorridor(world: World, pointLights: Array<{ color: Color }>): CorridorRefs {

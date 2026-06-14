@@ -1,0 +1,54 @@
+<panel width="480" height="420" backgroundColor="#0a0a1aee" borderRadius="16" borderWidth="2" borderColor="#00ff8844" padding="24">
+  <container flexDirection="column" alignItems="center" gap="10" width="100%">
+    <text fontSize="28" fontWeight="bold" color="#00ff88">STATISTICS</text>
+
+    <container flexDirection="column" gap="6" width="85%" marginTop="6"
+              backgroundColor="#ffffff08" borderRadius="8" padding="12">
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Total Runs</text>
+        <text name="stat-games" fontSize="16" fontWeight="bold" color="#00ffff">0</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Total Distance</text>
+        <text name="stat-distance" fontSize="16" color="#00ff88">0m</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Total Orbs</text>
+        <text name="stat-orbs" fontSize="16" color="#ffff00">0</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Total Score</text>
+        <text name="stat-score" fontSize="16" color="#00ffff">0</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Time Played</text>
+        <text name="stat-time" fontSize="16" color="#ffffff">0m 0s</text>
+      </container>
+    </container>
+
+    <container flexDirection="column" gap="6" width="85%"
+              backgroundColor="#ffffff08" borderRadius="8" padding="12">
+      <text fontSize="12" color="#8888cc" textAlign="center">PERSONAL BESTS</text>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Longest Run</text>
+        <text name="stat-longest" fontSize="16" color="#ff8800">0m</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Top Speed</text>
+        <text name="stat-speed" fontSize="16" color="#ff4444">0 m/s</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Best Combo</text>
+        <text name="stat-combo" fontSize="16" color="#ff00ff">0</text>
+      </container>
+      <container flexDirection="row" justifyContent="space-between" width="100%">
+        <text fontSize="14" color="#8888cc">Power-ups Used</text>
+        <text name="stat-powerups" fontSize="16" color="#aa44ff">0</text>
+      </container>
+    </container>
+
+    <text name="btn-back" fontSize="16" color="#8888cc" backgroundColor="#8888cc22"
+          borderRadius="8" padding="10" textAlign="center" borderWidth="1" borderColor="#8888cc44"
+          hover-backgroundColor="#8888cc44" cursor="pointer" width="60%" marginTop="4">Back</text>
+  </container>
+</panel>
