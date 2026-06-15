@@ -1,0 +1,76 @@
+{
+  "element": {
+    "sourceTag": "panel",
+    "type": "custom",
+    "children": [
+      {
+        "sourceTag": "container",
+        "type": "custom",
+        "children": [
+          {
+            "sourceTag": "text",
+            "type": "custom",
+            "children": [
+              "3"
+            ],
+            "properties": {
+              "name": "countdown-text",
+              "fontsize": "96",
+              "fontweight": "bold",
+              "color": "#00ffff"
+            },
+            "dataUid": "uid-3"
+          }
+        ],
+        "properties": {
+          "flexdirection": "column",
+          "alignitems": "center",
+          "justifycontent": "center",
+          "width": "100%",
+          "height": "100%"
+        },
+        "dataUid": "uid-2"
+      }
+    ],
+    "properties": {
+      "width": "300",
+      "height": "200",
+      "backgroundcolor": "#00000000",
+      "padding": "20"
+    },
+    "dataUid": "uid-1"
+  },
+  "classes": {},
+  "ranges": {
+    "uid-1": {
+      "start": {
+        "line": 0,
+        "column": 0
+      },
+      "end": {
+        "line": 4,
+        "column": 8
+      }
+    },
+    "uid-2": {
+      "start": {
+        "line": 1,
+        "column": 2
+      },
+      "end": {
+        "line": 3,
+        "column": 14
+      }
+    },
+    "uid-3": {
+      "start": {
+        "line": 2,
+        "column": 4
+      },
+      "end": {
+        "line": 2,
+        "column": 88
+      }
+    }
+  }
+}
