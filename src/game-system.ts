@@ -520,6 +520,12 @@ export class GameSystem extends createSystem({}) {
   private flawlessRun = true; // no hits taken
   private speed25Time = -1; // time when 25 m/s reached
 
+  // Round 7: Polish
+  private baseFov = 75;
+  deathExplosionTimer = 0;
+  comboFlashTimer = 0;
+  private bestRunDistance = 0; // for revival prompt awareness
+
   // Challenge waves (extended)
   private challengeWaveTimer = 0;
   private challengeRestTimer = 0;
@@ -674,6 +680,12 @@ export class GameSystem extends createSystem({}) {
       ['speed-start', 'Quick Start', 'Reach 25 m/s in under 45 seconds', 1],
       ['endurance-1k', 'Endurance', 'Travel 1000m in Endless mode', 1000],
       ['rating-s', 'S-Rank', 'Earn an S rating on any mode', 1],
+      // Round 7 achievements
+      ['combo-200', 'Double Century', 'Get a 200-orb combo', 200],
+      ['speed-max-classic', 'Terminal Velocity', 'Reach max speed in Classic mode', 1],
+      ['all-modes', 'Versatile', 'Play all 6 game modes', 6],
+      ['near-miss-50', 'Razor Edge', 'Get 50 near-misses in one run', 50],
+      ['powerup-20', 'Power Junkie', 'Collect 20 power-ups in one run', 20],
     ];
 
     this.achievements = defs.map(([id, name, description, target]) => ({
@@ -831,6 +843,20 @@ export class GameSystem extends createSystem({}) {
     if (this.mode === GameMode.ENDLESS && this.distance >= 1000) {
       this.unlockAchievement('endurance-1k');
     }
+
+    // Round 7: Combo 200
+    if (this.currentCombo >= 200) this.unlockAchievement('combo-200');
+
+    // Round 7: Terminal Velocity (max speed in Classic)
+    if (this.mode === GameMode.CLASSIC && this.speed >= MAX_SPEED) {
+      this.unlockAchievement('speed-max-classic');
+    }
+
+    // Round 7: Near-miss 50
+    if (this.nearMissCount >= 50) this.unlockAchievement('near-miss-50');
+
+    // Round 7: Power Junkie (20 power-ups)
+    if (this.powerUpsCollected >= 20) this.unlockAchievement('powerup-20');
   }
 
   private createPlayerVisual() {
@@ -1255,6 +1281,27 @@ export class GameSystem extends createSystem({}) {
   }
 
   // ── Performance Rating (Round 6) ────────────────────────
+
+  // ── FOV Speed Effect (Round 7) ──────────────────────────
+
+  private updateFovEffect() {
+    const speedFrac = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+    // FOV grows from 75 to 90 at max speed
+    const targetFov = this.baseFov + speedFrac * 15;
+    const cam = this.camera as unknown as { fov: number; updateProjectionMatrix: () => void };
+    if (typeof cam.fov === 'number') {
+      cam.fov += (targetFov - cam.fov) * 0.05;
+      cam.updateProjectionMatrix();
+    }
+  }
+
+  private resetFov() {
+    const cam = this.camera as unknown as { fov: number; updateProjectionMatrix: () => void };
+    if (typeof cam.fov === 'number') {
+      cam.fov = this.baseFov;
+      cam.updateProjectionMatrix();
+    }
+  }
 
   getRating(): string {
     const s = this.score;
@@ -1720,6 +1767,11 @@ export class GameSystem extends createSystem({}) {
     this.flawlessRun = true;
     this.speed25Time = -1;
     this.rating = '';
+
+    // Round 7 resets
+    this.deathExplosionTimer = 0;
+    this.comboFlashTimer = 0;
+
     if (mode === GameMode.CHALLENGE) {
       this.challengeWaveNum = 1;
       this.challengeWaveTimer = CHALLENGE_WAVES[0].duration;
@@ -1759,6 +1811,7 @@ export class GameSystem extends createSystem({}) {
 
   quitToMenu() {
     this.state = GameState.MENU;
+    this.resetFov();
     this.hidePlayerVisual();
     for (const o of this.obstacles) this.deactivateObstacle(o);
     for (const c of this.collectibles) this.deactivateCollectible(c);
@@ -1804,6 +1857,13 @@ export class GameSystem extends createSystem({}) {
       case GameState.PAUSED:
         // Just animate player glow
         this.animatePlayerGlow(time);
+        break;
+      case GameState.GAME_OVER:
+        // Continue animating particles (death explosion) and holograms
+        this.updateParticles(dt);
+        this.updateWallHolograms(dt, time);
+        this.updateStarField(dt, time);
+        if (this.deathExplosionTimer > 0) this.deathExplosionTimer -= dt;
         break;
       default:
         break;
@@ -1921,6 +1981,12 @@ export class GameSystem extends createSystem({}) {
     // Round 6 updates
     this.updateWallHolograms(dt, time);
     this.updateWarningMarkers(dt, time);
+
+    // Round 7: FOV speed effect — camera widens at high speed
+    this.updateFovEffect();
+
+    // Round 7: Combo flash decay
+    if (this.comboFlashTimer > 0) this.comboFlashTimer -= dt;
 
     // Near-miss timer decay
     if (this.nearMissTimer > 0) this.nearMissTimer -= dt;
@@ -2050,11 +2116,14 @@ export class GameSystem extends createSystem({}) {
   }
 
   private updateObstacles(dt: number) {
+    const speedFrac = (this.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
+    const rotSpeed = 0.5 + speedFrac * 2.5; // Obstacles spin faster at high speed
+
     for (const o of this.obstacles) {
       if (!o.active) continue;
 
       o.group.position.z += this.speed * dt;
-      o.group.rotation.y += dt * 0.5;
+      o.group.rotation.y += dt * rotSpeed;
 
       // Despawn
       if (o.group.position.z > DESPAWN_Z) {
@@ -2125,6 +2194,16 @@ export class GameSystem extends createSystem({}) {
     // Audio
     this.audio?.playOrbCollect(this.multiplier);
 
+    // Round 7: Combo flash at high multiplier (>= 5x)
+    if (this.multiplier >= 5) {
+      this.comboFlashTimer = 0.15;
+      // Extra burst at milestones
+      if (this.currentCombo % 10 === 0) {
+        this.emitParticles(this.playerX, 1.5, this.playerMesh.position.z,
+          new Color(0xffff00), 12, 6, 0.7);
+      }
+    }
+
     // Increase multiplier every 3 orbs
     if (this.currentCombo % 3 === 0 && this.multiplier < MAX_MULTIPLIER) {
       this.multiplier++;
@@ -2181,6 +2260,21 @@ export class GameSystem extends createSystem({}) {
   private endGame() {
     this.state = GameState.GAME_OVER;
 
+    // Round 7: Death explosion - massive particle burst
+    if (this.lives <= 0) {
+      this.deathExplosionTimer = 0.5;
+      // Burst 1: player position — big colorful explosion
+      this.emitParticles(this.playerX, 0.8, this.playerMesh.position.z,
+        new Color(0xff4444), 20, 8, 1.2);
+      this.emitParticles(this.playerX, 1.0, this.playerMesh.position.z,
+        new Color(0xff8800), 15, 6, 1.0);
+      this.emitParticles(this.playerX, 0.6, this.playerMesh.position.z,
+        this._tmpPrimary.clone(), 10, 5, 0.8);
+    }
+
+    // Round 7: Reset FOV
+    this.resetFov();
+
     // Round 6: Compute performance rating
     this.rating = this.getRating();
     if (this.rating === 'S') this.unlockAchievement('rating-s');
@@ -2215,6 +2309,12 @@ export class GameSystem extends createSystem({}) {
       this.audio?.playNewRecord();
     } else {
       this.audio?.playGameOver();
+    }
+
+    // Round 7: All-modes achievement — check if all 6 modes have been played via stats
+    if (this.stats) {
+      const modesPlayed = Object.keys(this.stats.get().gamesPerMode).length;
+      if (modesPlayed >= 6) this.unlockAchievement('all-modes');
     }
 
     this.hidePlayerVisual();

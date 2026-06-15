@@ -563,6 +563,12 @@ export class UISystem extends createSystem({
     } else {
       setVisible(doc, 'zone-indicator', false);
     }
+
+    // Combo flash indicator (Round 7)
+    setVisible(doc, 'combo-flash', gs.comboFlashTimer > 0);
+    if (gs.comboFlashTimer > 0) {
+      setText(doc, 'combo-flash', `+${Math.floor(gs.score % 1000).toLocaleString()}`);
+    }
   }
 
   private updateCountdownPanel() {

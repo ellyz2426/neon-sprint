@@ -242,6 +242,21 @@
             "sourceTag": "text",
             "type": "custom",
             "children": [
+              "+500"
+            ],
+            "properties": {
+              "name": "combo-flash",
+              "fontsize": "12",
+              "fontweight": "bold",
+              "color": "#ffffff",
+              "display": "none"
+            },
+            "dataUid": "uid-20"
+          },
+          {
+            "sourceTag": "text",
+            "type": "custom",
+            "children": [
               "1000m!"
             ],
             "properties": {
@@ -251,7 +266,7 @@
               "color": "#00ff88",
               "display": "none"
             },
-            "dataUid": "uid-20"
+            "dataUid": "uid-21"
           },
           {
             "sourceTag": "text",
@@ -265,7 +280,7 @@
               "color": "#8888cc",
               "display": "none"
             },
-            "dataUid": "uid-21"
+            "dataUid": "uid-22"
           }
         ],
         "properties": {
@@ -293,7 +308,7 @@
           "display": "none",
           "margintop": "2"
         },
-        "dataUid": "uid-22"
+        "dataUid": "uid-23"
       }
     ],
     "properties": {
@@ -315,7 +330,7 @@
         "column": 0
       },
       "end": {
-        "line": 35,
+        "line": 36,
         "column": 8
       }
     },
@@ -485,7 +500,7 @@
         "column": 2
       },
       "end": {
-        "line": 31,
+        "line": 32,
         "column": 14
       }
     },
@@ -516,16 +531,26 @@
       },
       "end": {
         "line": 30,
-        "column": 94
+        "column": 103
       }
     },
     "uid-22": {
       "start": {
-        "line": 33,
+        "line": 31,
+        "column": 4
+      },
+      "end": {
+        "line": 31,
+        "column": 94
+      }
+    },
+    "uid-23": {
+      "start": {
+        "line": 34,
         "column": 2
       },
       "end": {
-        "line": 34,
+        "line": 35,
         "column": 92
       }
     }

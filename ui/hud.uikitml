@@ -27,6 +27,7 @@
 
   <container flexDirection="row" justifyContent="space-between" alignItems="center" width="100%" gap="8" marginTop="2">
     <text name="combo-meter" fontSize="14" fontWeight="bold" color="#ffff00" display="none">COMBO x0</text>
+    <text name="combo-flash" fontSize="12" fontWeight="bold" color="#ffffff" display="none">+500</text>
     <text name="milestone" fontSize="14" fontWeight="bold" color="#00ff88" display="none">1000m!</text>
     <text name="zone-indicator" fontSize="11" color="#8888cc" display="none">SPEED ZONE</text>
   </container>
