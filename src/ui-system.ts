@@ -590,6 +590,9 @@ export class UISystem extends createSystem({
     setText(doc, 'high-score', `Best: ${(gs.highScores[gs.mode] || 0).toLocaleString()}`);
     setText(doc, 'mode-name', GAME_MODES[gs.mode].name);
 
+    // Round 6: Performance rating
+    setText(doc, 'rating', gs.rating || '');
+
     // Show wave reached for challenge mode
     if (gs.mode === GameMode.CHALLENGE) {
       setText(doc, 'final-wave', `${gs.challengeWaveNum}`);

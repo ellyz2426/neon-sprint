@@ -3,6 +3,8 @@
     <text name="game-over-title" fontSize="40" fontWeight="bold" color="#ff4444">GAME OVER</text>
     <text name="mode-name" fontSize="14" color="#8888cc">Classic</text>
 
+    <text name="rating" fontSize="48" fontWeight="bold" color="#00ffff" marginTop="4">S</text>
+
     <text name="new-record-badge" fontSize="18" fontWeight="bold" color="#ffff00"
           backgroundColor="#ffff0022" borderRadius="8" padding="6" display="none">NEW RECORD!</text>
 

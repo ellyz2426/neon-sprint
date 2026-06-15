@@ -505,6 +505,21 @@ export class GameSystem extends createSystem({}) {
   currentZoneName = '';
   zoneChangeTimer = 0;
 
+  // Round 6: Wall holograms
+  private wallHolograms: Mesh[] = [];
+  private static readonly HOLO_COUNT = 10;
+
+  // Round 6: Warning markers
+  private warningMarkers: Mesh[] = [];
+  private static readonly WARNING_COUNT = 8;
+
+  // Round 6: Performance rating
+  rating = '';
+
+  // Round 6: Tracking
+  private flawlessRun = true; // no hits taken
+  private speed25Time = -1; // time when 25 m/s reached
+
   // Challenge waves (extended)
   private challengeWaveTimer = 0;
   private challengeRestTimer = 0;
@@ -552,6 +567,8 @@ export class GameSystem extends createSystem({}) {
     this.createPhaseGlow();
     this.createStarField();
     this.createPlayerTrail();
+    this.createWallHolograms();
+    this.createWarningMarkers();
     this.hidePlayerVisual();
   }
 
@@ -652,6 +669,11 @@ export class GameSystem extends createSystem({}) {
       ['milestone-5k', 'Five K', 'Reach the 5km milestone', 1],
       ['milestone-10k', 'Ten K', 'Reach the 10km milestone', 1],
       ['perfect-run-500', 'Untouchable', 'Travel 500m without taking damage', 500],
+      // Round 6 achievements
+      ['flawless-classic', 'Flawless', 'Complete Classic with all 3 lives', 1],
+      ['speed-start', 'Quick Start', 'Reach 25 m/s in under 45 seconds', 1],
+      ['endurance-1k', 'Endurance', 'Travel 1000m in Endless mode', 1000],
+      ['rating-s', 'S-Rank', 'Earn an S rating on any mode', 1],
     ];
 
     this.achievements = defs.map(([id, name, description, target]) => ({
@@ -797,6 +819,17 @@ export class GameSystem extends createSystem({}) {
     if (this.activePowerUp === PowerUpType.DOUBLE_POINTS) {
       const scored = this.score - this.doublePointsScoreStart;
       if (scored >= 5000) this.unlockAchievement('double-pts');
+    }
+
+    // Round 6: Quick Start (reach 25 m/s in under 45s)
+    if (this.speed >= 25 && this.speed25Time < 0) {
+      this.speed25Time = this.elapsedTime;
+      if (this.speed25Time < 45) this.unlockAchievement('speed-start');
+    }
+
+    // Round 6: Endurance (1000m in Endless)
+    if (this.mode === GameMode.ENDLESS && this.distance >= 1000) {
+      this.unlockAchievement('endurance-1k');
     }
   }
 
@@ -1129,6 +1162,109 @@ export class GameSystem extends createSystem({}) {
       // Color follows environment
       (seg.material as MeshBasicMaterial).color.copy(this._tmpPrimary);
     }
+  }
+
+  // ── Wall Holograms (Round 6) ─────────────────────────────
+
+  private createWallHolograms() {
+    const shapes = [
+      new TorusGeometry(0.3, 0.05, 8, 16),
+      new OctahedronGeometry(0.25, 0),
+      new IcosahedronGeometry(0.2, 0),
+      new TorusGeometry(0.2, 0.03, 6, 12),
+      new CylinderGeometry(0.15, 0.15, 0.4, 6),
+    ];
+
+    for (let i = 0; i < GameSystem.HOLO_COUNT; i++) {
+      const geo = shapes[i % shapes.length];
+      const mat = new MeshBasicMaterial({
+        color: new Color(0x00ffff),
+        transparent: true,
+        opacity: 0.12,
+        blending: AdditiveBlending,
+      });
+      const mesh = new Mesh(geo, mat);
+      const side = i % 2 === 0 ? -3.5 : 3.5;
+      mesh.position.set(side, 1.5 + Math.random() * 1.5, -i * 12 - 5);
+      this.scene.add(mesh);
+      this.wallHolograms.push(mesh);
+    }
+  }
+
+  private updateWallHolograms(dt: number, time: number) {
+    for (let i = 0; i < this.wallHolograms.length; i++) {
+      const h = this.wallHolograms[i];
+      h.rotation.x += dt * 0.5;
+      h.rotation.y += dt * 0.8;
+
+      if (this.state === GameState.PLAYING) {
+        h.position.z += this.speed * dt * 0.4;
+        if (h.position.z > DESPAWN_Z) {
+          h.position.z = SPAWN_Z - Math.random() * 20;
+          h.position.x = i % 2 === 0 ? -3.5 : 3.5;
+          h.position.y = 1.5 + Math.random() * 1.5;
+        }
+      }
+
+      const pulse = Math.sin(time * 2 + i * 0.8) * 0.05 + 0.1;
+      (h.material as MeshBasicMaterial).opacity = pulse;
+      (h.material as MeshBasicMaterial).color.copy(this._tmpPrimary);
+    }
+  }
+
+  // ── Warning Markers (Round 6) ───────────────────────────
+
+  private createWarningMarkers() {
+    for (let i = 0; i < GameSystem.WARNING_COUNT; i++) {
+      const geo = new PlaneGeometry(1.4, 0.12);
+      const mat = new MeshBasicMaterial({
+        color: 0xff4444,
+        transparent: true,
+        opacity: 0,
+        blending: AdditiveBlending,
+      });
+      const marker = new Mesh(geo, mat);
+      marker.rotation.x = -Math.PI / 2;
+      marker.position.y = 0.015;
+      marker.visible = false;
+      this.scene.add(marker);
+      this.warningMarkers.push(marker);
+    }
+  }
+
+  private updateWarningMarkers(_dt: number, time: number) {
+    let idx = 0;
+    for (const o of this.obstacles) {
+      if (!o.active || idx >= this.warningMarkers.length) continue;
+      if (o.group.position.z > -8 || o.group.position.z < -55) continue;
+
+      const marker = this.warningMarkers[idx];
+      marker.visible = true;
+      marker.position.x = o.group.position.x;
+      marker.position.z = o.group.position.z + 2;
+
+      const dist = Math.abs(o.group.position.z - this.playerMesh.position.z);
+      const urgency = Math.max(0, 1 - dist / 45);
+      const pulse = Math.sin(time * 12) * 0.3 + 0.7;
+      (marker.material as MeshBasicMaterial).opacity = urgency * pulse * 0.35;
+      idx++;
+    }
+    for (let i = idx; i < this.warningMarkers.length; i++) {
+      this.warningMarkers[i].visible = false;
+    }
+  }
+
+  // ── Performance Rating (Round 6) ────────────────────────
+
+  getRating(): string {
+    const s = this.score;
+    const d = this.distance;
+    if (s >= 50000 || d >= 5000) return 'S';
+    if (s >= 20000 || d >= 3000) return 'A';
+    if (s >= 10000 || d >= 1500) return 'B';
+    if (s >= 5000 || d >= 800) return 'C';
+    if (s >= 1000 || d >= 300) return 'D';
+    return 'F';
   }
 
   // ── Near-Miss Detection ─────────────────────────────────
@@ -1580,7 +1716,10 @@ export class GameSystem extends createSystem({}) {
     this.zoneChangeTimer = 0;
     this.distanceSinceLastHit = 0;
 
-    // Init challenge wave if in challenge mode
+    // Round 6 resets
+    this.flawlessRun = true;
+    this.speed25Time = -1;
+    this.rating = '';
     if (mode === GameMode.CHALLENGE) {
       this.challengeWaveNum = 1;
       this.challengeWaveTimer = CHALLENGE_WAVES[0].duration;
@@ -1633,6 +1772,7 @@ export class GameSystem extends createSystem({}) {
     for (const s of this.trailSegments) s.visible = false;
     this.trailPositions.length = 0;
     this.nearMissedObstacles.clear();
+    for (const w of this.warningMarkers) w.visible = false;
     this.audio?.stopMusic();
   }
 
@@ -1777,6 +1917,10 @@ export class GameSystem extends createSystem({}) {
     this.updatePlayerTrail(dt);
     this.checkMilestones();
     this.updateDifficultyZone();
+
+    // Round 6 updates
+    this.updateWallHolograms(dt, time);
+    this.updateWarningMarkers(dt, time);
 
     // Near-miss timer decay
     if (this.nearMissTimer > 0) this.nearMissTimer -= dt;
@@ -2023,6 +2167,7 @@ export class GameSystem extends createSystem({}) {
     this.audio?.playHit();
 
     this.lives--;
+    this.flawlessRun = false;
     this.multiplier = 1;
     this.currentCombo = 0;
     this.invincibilityTimer = INVINCIBILITY_TIME;
@@ -2035,6 +2180,15 @@ export class GameSystem extends createSystem({}) {
 
   private endGame() {
     this.state = GameState.GAME_OVER;
+
+    // Round 6: Compute performance rating
+    this.rating = this.getRating();
+    if (this.rating === 'S') this.unlockAchievement('rating-s');
+
+    // Round 6: Flawless Classic
+    if (this.mode === GameMode.CLASSIC && this.flawlessRun && this.distance > 50) {
+      this.unlockAchievement('flawless-classic');
+    }
 
     // Record lifetime stats
     if (this.stats) {
@@ -2073,6 +2227,7 @@ export class GameSystem extends createSystem({}) {
     for (const s of this.trailSegments) s.visible = false;
     this.trailPositions.length = 0;
     this.nearMissedObstacles.clear();
+    for (const w of this.warningMarkers) w.visible = false;
     this.audio?.stopMusic();
   }
 }
